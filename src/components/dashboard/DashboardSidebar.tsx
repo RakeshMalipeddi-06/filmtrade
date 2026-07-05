@@ -3,7 +3,7 @@ const navigation = [
   { label: "Discover", href: "/discover" },
   { label: "Movies", href: "#" },
   { label: "FilmPulse", href: "/filmpulse" },
-  { label: "Watchlist", href: "#" },
+  { label: "Watchlist", href: "/watchlist" },
   { label: "Activity", href: "#" },
   { label: "Profile", href: "#" },
   { label: "Settings", href: "#" },
