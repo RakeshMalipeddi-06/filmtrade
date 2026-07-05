@@ -1,101 +1,57 @@
-import Image from "next/image";
-
 export default function Home() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <main className="min-h-screen bg-white text-[#10233f]">
+      <section className="mx-auto flex min-h-screen max-w-7xl flex-col px-6 py-6 sm:px-10 lg:px-16">
+        <nav className="flex items-center justify-between">
+          <div className="text-xl font-bold tracking-tight">
+            FILM<span className="text-[#00ABE4]">TRADE</span>
+          </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+          <div className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
+            <a href="#how-it-works">How it works</a>
+            <a href="#explore">Explore</a>
+            <a href="#demo">Demo notice</a>
+          </div>
+
+          <button className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold transition hover:border-[#00ABE4] hover:text-[#00ABE4]">
+            Sign in
+          </button>
+        </nav>
+
+        <div className="flex flex-1 flex-col justify-center py-20">
+          <p className="mb-6 inline-flex w-fit rounded-full bg-[#E9F1FA] px-4 py-2 text-sm font-semibold text-[#087ba8]">
+            Student portfolio demo
+          </p>
+
+          <h1 className="max-w-4xl text-5xl font-bold leading-[1.04] tracking-tight sm:text-6xl lg:text-7xl">
+            Discover the stories
+            <span className="block text-[#00ABE4]">behind the screen.</span>
+          </h1>
+
+          <p className="mt-7 max-w-2xl text-lg leading-8 text-slate-600">
+            FilmTrade is a premium concept platform for exploring film projects,
+            simulated investment journeys, and transparent revenue-sharing workflows.
+          </p>
+
+          <div className="mt-10 flex flex-col gap-4 sm:flex-row">
+            <button className="rounded-full bg-[#00ABE4] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#008fbe]">
+              Explore projects
+            </button>
+            <button className="rounded-full border border-slate-200 px-6 py-3 text-sm font-bold transition hover:border-[#00ABE4] hover:text-[#00ABE4]">
+              See how it works
+            </button>
+          </div>
+
+          <div id="demo" className="mt-16 max-w-3xl rounded-2xl border border-[#cfe7f2] bg-[#f7fcff] p-5 text-sm leading-6 text-slate-600">
+            <strong className="text-[#10233f]">Demo simulation notice:</strong> FilmTrade is a student portfolio project. It does not process real money, sell securities, promise returns, or provide legal, financial, KYC, AML, escrow, revenue, or payout services.
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+
+        <footer className="flex flex-col gap-3 border-t border-slate-100 pt-6 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+          <p>Lights. Camera. Invest.</p>
+          <p>FilmTrade © 2026 · Portfolio demo</p>
+        </footer>
+      </section>
+    </main>
   );
 }
