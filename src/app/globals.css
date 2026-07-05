@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  --foreground: #10233f;
+  --foreground: #0f2742;
   --background: #ffffff;
 }
 
@@ -22,11 +22,15 @@ body {
 }
 
 @keyframes loading {
-  from { width: 0%; }
-  to { width: 100%; }
-}
+  0% {
+    transform: translateX(-110%);
+  }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-12px); }
+  50% {
+    transform: translateX(95%);
+  }
+
+  100% {
+    transform: translateX(230%);
+  }
 }
