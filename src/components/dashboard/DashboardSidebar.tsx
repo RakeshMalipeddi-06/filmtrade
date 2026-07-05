@@ -6,7 +6,7 @@ const navigation = [
   { label: "Watchlist", href: "/watchlist" },
   { label: "Activity", href: "/activity" },
   { label: "Profile", href: "/profile" },
-  { label: "Settings", href: "#" },
+  { label: "Settings", href: "/settings" },
 ];
 
 export default function DashboardSidebar() {
