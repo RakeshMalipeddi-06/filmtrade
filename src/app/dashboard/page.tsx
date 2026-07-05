@@ -4,8 +4,6 @@ const projectCards = [
     genre: "Drama",
     pulse: "91",
     momentum: "Strong",
-    trust: "High",
-    risk: "Low",
     artwork: "MONSOON",
     poster: "from-[#4cc7f5] via-[#1679c9] to-[#12345b]",
     glow: "bg-white/20",
@@ -16,8 +14,6 @@ const projectCards = [
     genre: "Science fiction",
     pulse: "86",
     momentum: "Rising",
-    trust: "Strong",
-    risk: "Medium",
     artwork: "ORBIT",
     poster: "from-[#7469ee] via-[#33398f] to-[#101735]",
     glow: "bg-indigo-200/25",
@@ -28,8 +24,6 @@ const projectCards = [
     genre: "Mystery",
     pulse: "82",
     momentum: "Steady",
-    trust: "High",
-    risk: "Low",
     artwork: "FRAME",
     poster: "from-[#ffc73d] via-[#e55e2f] to-[#7b2038]",
     glow: "bg-amber-100/25",
@@ -40,8 +34,6 @@ const projectCards = [
     genre: "Drama",
     pulse: "79",
     momentum: "Watching",
-    trust: "Clear",
-    risk: "Medium",
     artwork: "SKIES",
     poster: "from-[#31d3dc] via-[#129ca8] to-[#07546e]",
     glow: "bg-cyan-100/25",
@@ -102,64 +94,46 @@ export default function DashboardPage() {
               <button className="text-sm font-black text-[#00ABE4]">View all</button>
             </div>
 
-            <div className="mt-5 grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
+            <div className="mt-5 flex gap-4 overflow-x-auto pb-3 [scrollbar-width:thin]">
               {projectCards.map((project) => (
                 <article
                   key={project.title}
-                  className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
+                  className="group w-[190px] shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
                 >
-                  <div className={`relative h-52 overflow-hidden bg-gradient-to-br ${project.poster} p-5 text-white`}>
-                    <div className={`absolute -right-8 -top-8 h-40 w-40 ${project.glow} blur-2xl`} />
-                    <div className={`absolute -bottom-10 -left-10 h-36 w-36 ${project.shape}`} />
-                    <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_30%,rgba(4,14,31,0.72)_100%)]" />
+                  <div className={`relative h-[150px] overflow-hidden bg-gradient-to-br ${project.poster} p-4 text-white`}>
+                    <div className={`absolute -right-7 -top-7 h-28 w-28 ${project.glow} blur-2xl`} />
+                    <div className={`absolute -bottom-8 -left-8 h-28 w-28 ${project.shape}`} />
+                    <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_20%,rgba(4,14,31,0.68)_100%)]" />
 
                     <div className="relative flex h-full flex-col justify-between">
-                      <div className="flex items-start justify-between gap-3">
-                        <span className="rounded-full border border-white/25 bg-white/10 px-2.5 py-1 text-[10px] font-black tracking-[0.15em] backdrop-blur-sm">
-                          DEMO FILM
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="rounded-full border border-white/25 bg-white/10 px-2 py-1 text-[9px] font-black tracking-[0.12em] backdrop-blur-sm">
+                          DEMO
                         </span>
-                        <span className="rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-black backdrop-blur-sm">
+                        <span className="rounded-full bg-white/15 px-2 py-1 text-[9px] font-black backdrop-blur-sm">
                           {project.genre}
                         </span>
                       </div>
 
                       <div>
-                        <p className="text-[10px] font-black tracking-[0.24em] text-white/75">FILMTRADE ORIGINAL CONCEPT</p>
-                        <p className="mt-2 text-3xl font-black leading-[0.88] tracking-tight">{project.artwork}</p>
-                        <p className="mt-2 text-xs font-semibold text-white/80">{project.title}</p>
+                        <p className="text-[9px] font-black tracking-[0.2em] text-white/75">FICTIONAL FILM</p>
+                        <p className="mt-1 text-2xl font-black leading-[0.88] tracking-tight">{project.artwork}</p>
                       </div>
                     </div>
                   </div>
 
                   <div className="p-4">
-                    <div className="flex items-start justify-between gap-3">
+                    <p className="truncate text-sm font-black text-[#0f172a]">{project.title}</p>
+                    <div className="mt-3 flex items-end justify-between gap-2">
                       <div>
-                        <p className="font-black text-[#0f172a]">{project.title}</p>
-                        <p className="mt-1 text-xs text-slate-500">Fictional project · Demo simulation</p>
+                        <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">FilmPulse</p>
+                        <p className="mt-1 text-2xl font-black text-[#0f2742]">{project.pulse}</p>
                       </div>
-                      <span className="rounded-full bg-[#e9f1fa] px-2.5 py-1 text-xs font-black text-[#087ba8]">
+                      <span className="mb-1 rounded-full bg-[#e9f1fa] px-2 py-1 text-[10px] font-black text-[#087ba8]">
                         {project.momentum}
                       </span>
                     </div>
-
-                    <div className="mt-4 grid grid-cols-3 gap-2 border-t border-slate-100 pt-4">
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Pulse</p>
-                        <p className="mt-1 text-lg font-black text-[#0f2742]">{project.pulse}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Trust</p>
-                        <p className="mt-1 text-sm font-black text-slate-700">{project.trust}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Risk</p>
-                        <p className="mt-1 text-sm font-black text-slate-700">{project.risk}</p>
-                      </div>
-                    </div>
-
-                    <button className="mt-4 w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-[#0f2742] transition hover:border-[#00ABE4] hover:bg-[#e9f1fa] hover:text-[#087ba8]">
-                      View demo project
-                    </button>
+                    <p className="mt-2 text-[10px] font-semibold text-slate-400">Demo simulation</p>
                   </div>
                 </article>
               ))}
