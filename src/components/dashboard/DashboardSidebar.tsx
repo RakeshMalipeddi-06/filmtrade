@@ -5,7 +5,7 @@ const navigation = [
   { label: "FilmPulse", href: "/filmpulse" },
   { label: "Watchlist", href: "/watchlist" },
   { label: "Activity", href: "/activity" },
-  { label: "Profile", href: "#" },
+  { label: "Profile", href: "/profile" },
   { label: "Settings", href: "#" },
 ];
 
@@ -14,7 +14,7 @@ export default function DashboardSidebar() {
     <aside className="hidden min-h-screen w-[280px] shrink-0 flex-col bg-[#0f2742] p-5 text-white lg:flex">
       <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
         <div className="flex items-center gap-3">
-          <div className="grid h-11 w-11 place-items-center rounded-xl bg-[#00ABE4] text-lg font-black text-[#0f172a]">
+          <div className="grid h-11 w-11 place-items-center rounded-xl bg-[#00ABE4] text-lg font-black text-[#0f2742]">
             FT
           </div>
           <div>
