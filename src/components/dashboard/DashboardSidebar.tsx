@@ -1,7 +1,7 @@
 const navigation = [
   { label: "Home", href: "/dashboard" },
   { label: "Discover", href: "/discover" },
-  { label: "Movies", href: "#" },
+  { label: "Movies", href: "/movies" },
   { label: "FilmPulse", href: "/filmpulse" },
   { label: "Watchlist", href: "/watchlist" },
   { label: "Activity", href: "/activity" },
