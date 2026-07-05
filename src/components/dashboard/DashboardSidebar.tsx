@@ -4,7 +4,7 @@ const navigation = [
   { label: "Movies", href: "#" },
   { label: "FilmPulse", href: "/filmpulse" },
   { label: "Watchlist", href: "/watchlist" },
-  { label: "Activity", href: "#" },
+  { label: "Activity", href: "/activity" },
   { label: "Profile", href: "#" },
   { label: "Settings", href: "#" },
 ];
