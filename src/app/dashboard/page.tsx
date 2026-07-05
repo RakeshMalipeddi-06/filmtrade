@@ -1,8 +1,52 @@
 const projectCards = [
-  { title: "After the Monsoon", genre: "Drama", pulse: "91", signal: "Strong", artwork: "MONSOON", tone: "from-sky-400 to-blue-800" },
-  { title: "Orbit 47", genre: "Sci-fi", pulse: "86", signal: "Rising", artwork: "ORBIT", tone: "from-indigo-500 to-slate-950" },
-  { title: "The Last Frame", genre: "Mystery", pulse: "82", signal: "Steady", artwork: "FRAME", tone: "from-amber-400 to-rose-700" },
-  { title: "Paper Skies", genre: "Drama", pulse: "79", signal: "Watching", artwork: "SKIES", tone: "from-cyan-400 to-teal-700" },
+  {
+    title: "After the Monsoon",
+    genre: "Drama",
+    pulse: "91",
+    momentum: "Strong",
+    trust: "High",
+    risk: "Low",
+    artwork: "MONSOON",
+    poster: "from-[#4cc7f5] via-[#1679c9] to-[#12345b]",
+    glow: "bg-white/20",
+    shape: "rounded-full border-[18px] border-white/20",
+  },
+  {
+    title: "Orbit 47",
+    genre: "Science fiction",
+    pulse: "86",
+    momentum: "Rising",
+    trust: "Strong",
+    risk: "Medium",
+    artwork: "ORBIT",
+    poster: "from-[#7469ee] via-[#33398f] to-[#101735]",
+    glow: "bg-indigo-200/25",
+    shape: "rounded-full border-[14px] border-indigo-100/25",
+  },
+  {
+    title: "The Last Frame",
+    genre: "Mystery",
+    pulse: "82",
+    momentum: "Steady",
+    trust: "High",
+    risk: "Low",
+    artwork: "FRAME",
+    poster: "from-[#ffc73d] via-[#e55e2f] to-[#7b2038]",
+    glow: "bg-amber-100/25",
+    shape: "rotate-12 border-[16px] border-amber-100/25",
+  },
+  {
+    title: "Paper Skies",
+    genre: "Drama",
+    pulse: "79",
+    momentum: "Watching",
+    trust: "Clear",
+    risk: "Medium",
+    artwork: "SKIES",
+    poster: "from-[#31d3dc] via-[#129ca8] to-[#07546e]",
+    glow: "bg-cyan-100/25",
+    shape: "rounded-t-full border-[15px] border-cyan-100/25",
+  },
 ];
 
 const activity = [
@@ -60,23 +104,62 @@ export default function DashboardPage() {
 
             <div className="mt-5 grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
               {projectCards.map((project) => (
-                <article key={project.title} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
-                  <div className={`flex h-40 items-end bg-gradient-to-br ${project.tone} p-5 text-white`}>
-                    <div>
-                      <p className="text-[10px] font-black tracking-[0.18em] text-white/75">FICTIONAL FILM</p>
-                      <p className="mt-2 text-2xl font-black leading-none">{project.artwork}</p>
+                <article
+                  key={project.title}
+                  className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
+                >
+                  <div className={`relative h-52 overflow-hidden bg-gradient-to-br ${project.poster} p-5 text-white`}>
+                    <div className={`absolute -right-8 -top-8 h-40 w-40 ${project.glow} blur-2xl`} />
+                    <div className={`absolute -bottom-10 -left-10 h-36 w-36 ${project.shape}`} />
+                    <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_30%,rgba(4,14,31,0.72)_100%)]" />
+
+                    <div className="relative flex h-full flex-col justify-between">
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="rounded-full border border-white/25 bg-white/10 px-2.5 py-1 text-[10px] font-black tracking-[0.15em] backdrop-blur-sm">
+                          DEMO FILM
+                        </span>
+                        <span className="rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-black backdrop-blur-sm">
+                          {project.genre}
+                        </span>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] font-black tracking-[0.24em] text-white/75">FILMTRADE ORIGINAL CONCEPT</p>
+                        <p className="mt-2 text-3xl font-black leading-[0.88] tracking-tight">{project.artwork}</p>
+                        <p className="mt-2 text-xs font-semibold text-white/80">{project.title}</p>
+                      </div>
                     </div>
                   </div>
+
                   <div className="p-4">
-                    <p className="font-black">{project.title}</p>
-                    <p className="mt-1 text-sm text-slate-500">{project.genre} · Demo simulation</p>
-                    <div className="mt-4 flex items-center justify-between">
+                    <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-xs text-slate-500">FilmPulse</p>
-                        <p className="text-2xl font-black text-[#0f2742]">{project.pulse}</p>
+                        <p className="font-black text-[#0f172a]">{project.title}</p>
+                        <p className="mt-1 text-xs text-slate-500">Fictional project · Demo simulation</p>
                       </div>
-                      <span className="rounded-full bg-[#e9f1fa] px-3 py-1 text-xs font-black text-[#087ba8]">{project.signal}</span>
+                      <span className="rounded-full bg-[#e9f1fa] px-2.5 py-1 text-xs font-black text-[#087ba8]">
+                        {project.momentum}
+                      </span>
                     </div>
+
+                    <div className="mt-4 grid grid-cols-3 gap-2 border-t border-slate-100 pt-4">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Pulse</p>
+                        <p className="mt-1 text-lg font-black text-[#0f2742]">{project.pulse}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Trust</p>
+                        <p className="mt-1 text-sm font-black text-slate-700">{project.trust}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Risk</p>
+                        <p className="mt-1 text-sm font-black text-slate-700">{project.risk}</p>
+                      </div>
+                    </div>
+
+                    <button className="mt-4 w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-[#0f2742] transition hover:border-[#00ABE4] hover:bg-[#e9f1fa] hover:text-[#087ba8]">
+                      View demo project
+                    </button>
                   </div>
                 </article>
               ))}
@@ -120,14 +203,14 @@ export default function DashboardPage() {
             <div className="mt-5 space-y-4">
               {projectCards.slice(0, 3).map((project) => (
                 <div key={project.title} className="flex items-center gap-3 rounded-2xl bg-[#f8fafc] p-3">
-                  <div className={`grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br ${project.tone} text-xs font-black text-white`}>
+                  <div className={`grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br ${project.poster} text-xs font-black text-white`}>
                     {project.artwork.slice(0, 1)}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-black">{project.title}</p>
                     <p className="mt-1 text-xs text-slate-500">FilmPulse {project.pulse} · demo</p>
                   </div>
-                  <span className="text-xs font-black text-[#087ba8]">{project.signal}</span>
+                  <span className="text-xs font-black text-[#087ba8]">{project.momentum}</span>
                 </div>
               ))}
             </div>
