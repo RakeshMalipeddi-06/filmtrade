@@ -1,12 +1,12 @@
 const navigation = [
-  "Home",
-  "Discover",
-  "Movies",
-  "FilmPulse",
-  "Watchlist",
-  "Activity",
-  "Profile",
-  "Settings",
+  { label: "Home", href: "/dashboard" },
+  { label: "Discover", href: "/discover" },
+  { label: "Movies", href: "#" },
+  { label: "FilmPulse", href: "#" },
+  { label: "Watchlist", href: "#" },
+  { label: "Activity", href: "#" },
+  { label: "Profile", href: "#" },
+  { label: "Settings", href: "#" },
 ];
 
 export default function DashboardSidebar() {
@@ -27,8 +27,8 @@ export default function DashboardSidebar() {
       <nav className="mt-8 space-y-2">
         {navigation.map((item, index) => (
           <a
-            key={item}
-            href={index === 0 ? "/dashboard" : "#"}
+            key={item.label}
+            href={item.href}
             className={`flex items-center rounded-xl px-4 py-3 text-sm font-bold transition ${
               index === 0
                 ? "bg-[#e9f1fa] text-[#0f2742]"
@@ -36,9 +36,9 @@ export default function DashboardSidebar() {
             }`}
           >
             <span className="mr-3 grid h-6 w-6 place-items-center rounded-md bg-current/10 text-xs">
-              {item.slice(0, 1)}
+              {item.label.slice(0, 1)}
             </span>
-            {item}
+            {item.label}
           </a>
         ))}
       </nav>
