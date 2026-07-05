@@ -19,6 +19,13 @@ const reports = [
   { title: "The Last Frame", label: "Demo revenue summary", status: "Planned" },
 ];
 
+const quickActions = [
+  { title: "Create project", detail: "Add a fictional project form", href: "/producer/create" },
+  { title: "Update milestone", detail: "Coming in the next producer step", href: "#" },
+  { title: "Prepare report", detail: "Coming in the next producer step", href: "#" },
+  { title: "View public page", detail: "See the investor-facing project view", href: "/discover" },
+];
+
 const metricStyles: Record<string, string> = {
   navy: "border-[#0f2742] bg-[#0f2742] text-white",
   blue: "border-[#2f789e] bg-[#2f789e] text-white",
@@ -67,9 +74,12 @@ export default function ProducerDashboardPage() {
               </p>
 
               <div className="mt-7 flex flex-wrap gap-3">
-                <button className="rounded-xl bg-[#00ABE4] px-5 py-3 text-sm font-black text-white transition hover:bg-[#008fbe]">
+                <a
+                  href="/producer/create"
+                  className="rounded-xl bg-[#00ABE4] px-5 py-3 text-sm font-black text-white transition hover:bg-[#008fbe]"
+                >
                   Create demo project
-                </button>
+                </a>
                 <a
                   href="/discover"
                   className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-black transition hover:border-[#00ABE4] hover:text-[#087ba8]"
@@ -121,7 +131,9 @@ export default function ProducerDashboardPage() {
                 </p>
                 <h2 className="mt-2 text-3xl font-black tracking-tight">Project workspace</h2>
               </div>
-              <button className="text-sm font-black text-[#00ABE4]">Manage all projects →</button>
+              <a href="/producer/create" className="text-sm font-black text-[#00ABE4]">
+                Create project →
+              </a>
             </div>
 
             <div className="mt-6 grid gap-5 md:grid-cols-3">
@@ -225,24 +237,20 @@ export default function ProducerDashboardPage() {
               </p>
 
               <div className="mt-5 space-y-3">
-                {[
-                  ["Create project", "Add a fictional project form"],
-                  ["Update milestone", "Change a mock project stage"],
-                  ["Prepare report", "Open an illustrative report draft"],
-                  ["View public page", "See the investor-facing project view"],
-                ].map(([title, detail], index) => (
-                  <button
-                    key={title}
+                {quickActions.map((action, index) => (
+                  <a
+                    key={action.title}
+                    href={action.href}
                     className="flex w-full items-center gap-3 rounded-2xl bg-[#f8fafc] p-4 text-left transition hover:bg-[#e9f1fa]"
                   >
                     <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white text-sm font-black text-[#087ba8] shadow-sm">
                       {index + 1}
                     </span>
                     <span>
-                      <span className="block text-sm font-black">{title}</span>
-                      <span className="mt-1 block text-xs leading-5 text-slate-500">{detail}</span>
+                      <span className="block text-sm font-black">{action.title}</span>
+                      <span className="mt-1 block text-xs leading-5 text-slate-500">{action.detail}</span>
                     </span>
-                  </button>
+                  </a>
                 ))}
               </div>
             </section>
@@ -269,7 +277,10 @@ export default function ProducerDashboardPage() {
                 ))}
               </div>
 
-              <button className="mt-6 w-full rounded-xl bg-[#00ABE4] px-4 py-3 text-sm font-black text-white transition hover:bg-[#008fbe]">
+              <button
+                type="button"
+                className="mt-6 w-full rounded-xl bg-[#00ABE4] px-4 py-3 text-sm font-black text-white transition hover:bg-[#008fbe]"
+              >
                 View demo reports
               </button>
             </section>
