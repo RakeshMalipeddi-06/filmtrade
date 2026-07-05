@@ -2,7 +2,7 @@ const navigation = [
   { label: "Home", href: "/dashboard" },
   { label: "Discover", href: "/discover" },
   { label: "Movies", href: "#" },
-  { label: "FilmPulse", href: "#" },
+  { label: "FilmPulse", href: "/filmpulse" },
   { label: "Watchlist", href: "#" },
   { label: "Activity", href: "#" },
   { label: "Profile", href: "#" },
@@ -25,15 +25,11 @@ export default function DashboardSidebar() {
       </div>
 
       <nav className="mt-8 space-y-2">
-        {navigation.map((item, index) => (
+        {navigation.map((item) => (
           <a
             key={item.label}
             href={item.href}
-            className={`flex items-center rounded-xl px-4 py-3 text-sm font-bold transition ${
-              index === 0
-                ? "bg-[#e9f1fa] text-[#0f2742]"
-                : "text-slate-200 hover:bg-white/10 hover:text-white"
-            }`}
+            className="flex items-center rounded-xl px-4 py-3 text-sm font-bold text-slate-200 transition hover:bg-white/10 hover:text-white"
           >
             <span className="mr-3 grid h-6 w-6 place-items-center rounded-md bg-current/10 text-xs">
               {item.label.slice(0, 1)}
