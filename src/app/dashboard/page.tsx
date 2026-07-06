@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 
@@ -94,7 +94,6 @@ function getStoredValue<T>(key: string, fallback: T): T {
 
   try {
     const savedValue = window.localStorage.getItem(key);
-
     return savedValue ? (JSON.parse(savedValue) as T) : fallback;
   } catch {
     return fallback;
@@ -146,27 +145,21 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    if (!storageReady) {
-      return;
+    if (storageReady) {
+      window.localStorage.setItem(STORAGE_KEYS.watchlist, JSON.stringify(watchlist));
     }
-
-    window.localStorage.setItem(STORAGE_KEYS.watchlist, JSON.stringify(watchlist));
   }, [storageReady, watchlist]);
 
   useEffect(() => {
-    if (!storageReady) {
-      return;
+    if (storageReady) {
+      window.localStorage.setItem(STORAGE_KEYS.activity, JSON.stringify(activity));
     }
-
-    window.localStorage.setItem(STORAGE_KEYS.activity, JSON.stringify(activity));
   }, [activity, storageReady]);
 
   useEffect(() => {
-    if (!storageReady) {
-      return;
+    if (storageReady) {
+      window.localStorage.setItem(STORAGE_KEYS.portfolio, JSON.stringify(portfolio));
     }
-
-    window.localStorage.setItem(STORAGE_KEYS.portfolio, JSON.stringify(portfolio));
   }, [portfolio, storageReady]);
 
   const opportunities = useMemo<DashboardMovie[]>(() => {
@@ -214,14 +207,16 @@ export default function DashboardPage() {
   const featuredMovie = opportunities[0];
 
   function addActivity(message: string) {
-    setActivity((current) => [
-      {
-        id: `${Date.now()}-${Math.random()}`,
-        message,
-        createdAt: "Just now",
-      },
-      ...current,
-    ].slice(0, 6));
+    setActivity((current) =>
+      [
+        {
+          id: `${Date.now()}-${Math.random()}`,
+          message,
+          createdAt: "Just now",
+        },
+        ...current,
+      ].slice(0, 6),
+    );
   }
 
   function toggleWatchlist(title: string) {
@@ -299,8 +294,7 @@ export default function DashboardPage() {
               </p>
               <p className="mt-3 text-3xl font-black">Positive</p>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                {opportunities.length || "No"} curated opportunities are
-                available for review.
+                {opportunities.length || "No"} curated opportunities are available for review.
               </p>
             </div>
           </div>
@@ -308,11 +302,7 @@ export default function DashboardPage() {
 
         <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {[
-            [
-              "Portfolio",
-              formatDemoValue(portfolio.value),
-              "Simulated value only",
-            ],
+            ["Portfolio", formatDemoValue(portfolio.value), "Simulated value only"],
             [
               "Active investments",
               portfolio.investmentCount.toString(),
@@ -398,9 +388,7 @@ export default function DashboardPage() {
                       <p className="text-xs font-black tracking-[0.13em] text-white/75">
                         {movie.language.toUpperCase()}
                       </p>
-                      <h3 className="mt-1 text-2xl font-black">
-                        {movie.title}
-                      </h3>
+                      <h3 className="mt-1 text-2xl font-black">{movie.title}</h3>
                     </div>
                   </div>
 
@@ -410,9 +398,7 @@ export default function DashboardPage() {
                         <p className="text-xs font-black uppercase tracking-[0.12em] text-[#087ba8]">
                           FilmPulse · demo
                         </p>
-                        <p className="mt-1 text-3xl font-black">
-                          {movie.filmPulse}
-                        </p>
+                        <p className="mt-1 text-3xl font-black">{movie.filmPulse}</p>
                       </div>
 
                       <div className="text-right text-sm">
@@ -431,7 +417,7 @@ export default function DashboardPage() {
 
                     <div className="mt-5 grid grid-cols-3 gap-2">
                       <a
-                        href="/movies"
+                        href={`/movies/${movie.id}`}
                         className="rounded-xl border border-slate-200 px-2 py-3 text-center text-xs font-black text-slate-700"
                       >
                         Intelligence
@@ -442,9 +428,7 @@ export default function DashboardPage() {
                         onClick={() => toggleWatchlist(movie.title)}
                         className="rounded-xl bg-[#0f2742] px-2 py-3 text-xs font-black text-white"
                       >
-                        {watchlist.includes(movie.title)
-                          ? "Watching"
-                          : "Watchlist"}
+                        {watchlist.includes(movie.title) ? "Watching" : "Watchlist"}
                       </button>
 
                       <button
@@ -473,9 +457,7 @@ export default function DashboardPage() {
                   : "Your demo portfolio is ready when you are."}
               </h2>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-                Portfolio value: {formatDemoValue(portfolio.value)}. This data
-                is stored only in this browser for the FilmTrade project demo.
-                No money is processed and no real ownership is created.
+                Portfolio value: {formatDemoValue(portfolio.value)}. This data is stored only in this browser for the FilmTrade project demo. No money is processed and no real ownership is created.
               </p>
               <a
                 href="/movies"
@@ -497,31 +479,28 @@ export default function DashboardPage() {
                 <div>
                   <p className="font-black">Summary</p>
                   <p className="mt-1 text-slate-600">
-                    Upcoming projects currently lead the demo catalogue by
-                    FilmPulse score.
+                    Upcoming projects currently lead the demo catalogue by FilmPulse score.
                   </p>
                 </div>
 
                 <div>
                   <p className="font-black">Reasoning</p>
                   <p className="mt-1 text-slate-600">
-                    This is simulated intelligence based on catalogue metadata
-                    and transparent demo scoring.
+                    This is simulated intelligence based on catalogue metadata and transparent demo scoring.
                   </p>
                 </div>
 
                 <div>
                   <p className="font-black">Suggested action</p>
                   <p className="mt-1 text-slate-600">
-                    Compare trust and risk labels before opening a movie
-                    intelligence page.
+                    Compare trust and risk labels before opening a movie intelligence page.
                   </p>
                 </div>
               </div>
 
               {featuredMovie && (
                 <a
-                  href="/movies"
+                  href={`/movies/${featuredMovie.id}`}
                   className="mt-6 block rounded-xl bg-[#0f2742] px-4 py-3 text-center text-sm font-black text-white"
                 >
                   Review {featuredMovie.title}
@@ -538,10 +517,7 @@ export default function DashboardPage() {
                   <h2 className="mt-2 text-xl font-black">Following</h2>
                 </div>
 
-                <a
-                  href="/watchlist"
-                  className="text-xs font-black text-[#00ABE4]"
-                >
+                <a href="/watchlist" className="text-xs font-black text-[#00ABE4]">
                   View all
                 </a>
               </div>
@@ -554,9 +530,7 @@ export default function DashboardPage() {
                       className="flex items-center justify-between gap-3 rounded-2xl bg-[#f8fafc] p-3"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-black">
-                          {movie.title}
-                        </p>
+                        <p className="truncate text-sm font-black">{movie.title}</p>
                         <p className="mt-1 text-xs font-bold text-slate-500">
                           FilmPulse demo {movie.filmPulse}
                         </p>
@@ -604,9 +578,7 @@ export default function DashboardPage() {
                 Transparent demo experience
               </p>
               <p className="mt-2 text-sm leading-6 text-emerald-800">
-                FilmTrade demonstrates decision support only. It does not
-                verify identity, hold funds, process payments, or create real
-                investments.
+                FilmTrade demonstrates decision support only. It does not verify identity, hold funds, process payments, or create real investments.
               </p>
             </section>
           </aside>
