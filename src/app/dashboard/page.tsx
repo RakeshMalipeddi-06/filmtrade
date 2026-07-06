@@ -32,6 +32,38 @@ type DashboardMovie = {
   risk: "Low" | "Medium";
 };
 
+type ActivityItem = {
+  id: string;
+  message: string;
+  createdAt: string;
+};
+
+type DemoPortfolio = {
+  investmentCount: number;
+  value: number;
+};
+
+const STORAGE_KEYS = {
+  watchlist: "filmtrade-demo-watchlist",
+  activity: "filmtrade-demo-activity",
+  portfolio: "filmtrade-demo-portfolio",
+};
+
+const initialWatchlist = ["Dragon", "Spirit", "Raaka"];
+
+const initialActivity: ActivityItem[] = [
+  {
+    id: "catalogue-ready",
+    message: "Catalogue refreshed. Live and verified records loaded.",
+    createdAt: "This session",
+  },
+  {
+    id: "demo-boundary",
+    message: "Demo boundary active. No real investment or payment activity.",
+    createdAt: "This session",
+  },
+];
+
 function scoreFor(id: string, minimum: number, range: number) {
   const value = id
     .split("")
@@ -51,15 +83,47 @@ function fallbackStyle(index: number) {
   return styles[index % styles.length];
 }
 
+function formatDemoValue(value: number) {
+  return `₹${value.toLocaleString("en-IN")}`;
+}
+
+function getStoredValue<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") {
+    return fallback;
+  }
+
+  try {
+    const savedValue = window.localStorage.getItem(key);
+
+    return savedValue ? (JSON.parse(savedValue) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export default function DashboardPage() {
   const [data, setData] = useState<MovieApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [storageReady, setStorageReady] = useState(false);
   const [query, setQuery] = useState("");
-  const [watchlist, setWatchlist] = useState<string[]>([
-    "Dragon",
-    "Spirit",
-    "Raaka",
-  ]);
+  const [watchlist, setWatchlist] = useState<string[]>(initialWatchlist);
+  const [activity, setActivity] = useState<ActivityItem[]>(initialActivity);
+  const [portfolio, setPortfolio] = useState<DemoPortfolio>({
+    investmentCount: 0,
+    value: 0,
+  });
+
+  useEffect(() => {
+    setWatchlist(getStoredValue(STORAGE_KEYS.watchlist, initialWatchlist));
+    setActivity(getStoredValue(STORAGE_KEYS.activity, initialActivity));
+    setPortfolio(
+      getStoredValue(STORAGE_KEYS.portfolio, {
+        investmentCount: 0,
+        value: 0,
+      }),
+    );
+    setStorageReady(true);
+  }, []);
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -80,6 +144,30 @@ export default function DashboardPage() {
 
     loadDashboardData();
   }, []);
+
+  useEffect(() => {
+    if (!storageReady) {
+      return;
+    }
+
+    window.localStorage.setItem(STORAGE_KEYS.watchlist, JSON.stringify(watchlist));
+  }, [storageReady, watchlist]);
+
+  useEffect(() => {
+    if (!storageReady) {
+      return;
+    }
+
+    window.localStorage.setItem(STORAGE_KEYS.activity, JSON.stringify(activity));
+  }, [activity, storageReady]);
+
+  useEffect(() => {
+    if (!storageReady) {
+      return;
+    }
+
+    window.localStorage.setItem(STORAGE_KEYS.portfolio, JSON.stringify(portfolio));
+  }, [portfolio, storageReady]);
 
   const opportunities = useMemo<DashboardMovie[]>(() => {
     const live = (data?.liveMovies || []).map((movie) => ({
@@ -125,11 +213,43 @@ export default function DashboardPage() {
 
   const featuredMovie = opportunities[0];
 
+  function addActivity(message: string) {
+    setActivity((current) => [
+      {
+        id: `${Date.now()}-${Math.random()}`,
+        message,
+        createdAt: "Just now",
+      },
+      ...current,
+    ].slice(0, 6));
+  }
+
   function toggleWatchlist(title: string) {
+    const isWatching = watchlist.includes(title);
+
     setWatchlist((current) =>
-      current.includes(title)
+      isWatching
         ? current.filter((item) => item !== title)
         : [...current, title],
+    );
+
+    addActivity(
+      isWatching
+        ? `Removed ${title} from your demo watchlist.`
+        : `Added ${title} to your demo watchlist.`,
+    );
+  }
+
+  function investDemo(movie: DashboardMovie) {
+    const demoAmount = 10000;
+
+    setPortfolio((current) => ({
+      investmentCount: current.investmentCount + 1,
+      value: current.value + demoAmount,
+    }));
+
+    addActivity(
+      `Added a ${formatDemoValue(demoAmount)} simulated investment for ${movie.title}.`,
     );
   }
 
@@ -188,8 +308,16 @@ export default function DashboardPage() {
 
         <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {[
-            ["Portfolio", "₹0", "No demo investments yet"],
-            ["Active investments", "0", "Start from a movie page"],
+            [
+              "Portfolio",
+              formatDemoValue(portfolio.value),
+              "Simulated value only",
+            ],
+            [
+              "Active investments",
+              portfolio.investmentCount.toString(),
+              "Demo investments in this browser",
+            ],
             ["Market FilmPulse", "78", "Simulated platform average"],
             ["Trust status", "Verified", "Demo profile · no real KYC"],
           ].map(([label, value, note]) => (
@@ -301,10 +429,10 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    <div className="mt-5 flex gap-3">
+                    <div className="mt-5 grid grid-cols-3 gap-2">
                       <a
                         href="/movies"
-                        className="flex-1 rounded-xl border border-slate-200 px-3 py-3 text-center text-sm font-black text-slate-700"
+                        className="rounded-xl border border-slate-200 px-2 py-3 text-center text-xs font-black text-slate-700"
                       >
                         Intelligence
                       </a>
@@ -312,11 +440,19 @@ export default function DashboardPage() {
                       <button
                         type="button"
                         onClick={() => toggleWatchlist(movie.title)}
-                        className="flex-1 rounded-xl bg-[#0f2742] px-3 py-3 text-sm font-black text-white"
+                        className="rounded-xl bg-[#0f2742] px-2 py-3 text-xs font-black text-white"
                       >
                         {watchlist.includes(movie.title)
                           ? "Watching"
                           : "Watchlist"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => investDemo(movie)}
+                        className="rounded-xl bg-[#00ABE4] px-2 py-3 text-xs font-black text-[#0f2742]"
+                      >
+                        Invest demo
                       </button>
                     </div>
                   </div>
@@ -329,14 +465,17 @@ export default function DashboardPage() {
               className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
             >
               <p className="text-xs font-black uppercase tracking-[0.18em] text-[#087ba8]">
-                Portfolio overview
+                Portfolio overview · demo
               </p>
               <h2 className="mt-2 text-2xl font-black">
-                Your demo portfolio is ready when you are.
+                {portfolio.investmentCount > 0
+                  ? `${portfolio.investmentCount} simulated investment${portfolio.investmentCount === 1 ? "" : "s"} recorded.`
+                  : "Your demo portfolio is ready when you are."}
               </h2>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-                Review a movie intelligence page and use the demo investment
-                flow. No money is processed and no real ownership is created.
+                Portfolio value: {formatDemoValue(portfolio.value)}. This data
+                is stored only in this browser for the FilmTrade project demo.
+                No money is processed and no real ownership is created.
               </p>
               <a
                 href="/movies"
@@ -446,26 +585,14 @@ export default function DashboardPage() {
               </p>
 
               <div className="mt-5 space-y-4 text-sm">
-                <p>
-                  <span className="font-black">Catalogue refreshed.</span>{" "}
-                  <span className="text-slate-500">
-                    Live and verified records loaded.
-                  </span>
-                </p>
-
-                <p>
-                  <span className="font-black">Demo boundary active.</span>{" "}
-                  <span className="text-slate-500">
-                    No real investment or payment activity.
-                  </span>
-                </p>
-
-                <p>
-                  <span className="font-black">Watchlist ready.</span>{" "}
-                  <span className="text-slate-500">
-                    Track titles for this session.
-                  </span>
-                </p>
+                {activity.map((item) => (
+                  <div key={item.id}>
+                    <p className="font-semibold">{item.message}</p>
+                    <p className="mt-1 text-xs font-bold text-slate-400">
+                      {item.createdAt}
+                    </p>
+                  </div>
+                ))}
               </div>
             </section>
 
