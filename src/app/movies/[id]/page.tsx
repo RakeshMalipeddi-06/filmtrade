@@ -45,6 +45,26 @@ type MovieApiResponse = {
   verifiedUpcomingMovies: UpcomingMovie[];
 };
 
+type MovieMediaItem = {
+  videoId: string;
+  type: "Glimpse" | "Announcement" | "Trailer" | "Song";
+  label: string;
+  officialUrl: string;
+  title: string;
+  channelTitle: string;
+  publishedAt: string | null;
+  viewCount: string | null;
+  thumbnailUrl: string;
+};
+
+type MovieMediaResponse = {
+  movieId: string;
+  source: string;
+  live: boolean;
+  warning?: string;
+  media: MovieMediaItem[];
+};
+
 type ActivityItem = {
   id: string;
   message: string;
@@ -91,6 +111,50 @@ function formatDemoValue(value: number) {
   return `₹${value.toLocaleString("en-IN")}`;
 }
 
+function formatViews(value: string | null) {
+  if (!value) {
+    return "Views unavailable";
+  }
+
+  const views = Number(value);
+
+  if (!Number.isFinite(views)) {
+    return "Views unavailable";
+  }
+
+  if (views >= 10_000_000) {
+    return `${(views / 10_000_000).toFixed(1)}Cr views`;
+  }
+
+  if (views >= 1_000_000) {
+    return `${(views / 1_000_000).toFixed(1)}M views`;
+  }
+
+  if (views >= 1_000) {
+    return `${(views / 1_000).toFixed(1)}K views`;
+  }
+
+  return `${views.toLocaleString("en-IN")} views`;
+}
+
+function formatDate(value: string | null) {
+  if (!value) {
+    return "Date unavailable";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Date unavailable";
+  }
+
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
 function getStoredValue<T>(key: string, fallback: T): T {
   try {
     const saved = window.localStorage.getItem(key);
@@ -107,8 +171,11 @@ function fallbackStyle() {
 export default function MovieIntelligencePage() {
   const params = useParams<{ id: string }>();
   const movieId = decodeURIComponent(params.id);
+
   const [data, setData] = useState<MovieApiResponse | null>(null);
+  const [mediaData, setMediaData] = useState<MovieMediaResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mediaLoading, setMediaLoading] = useState(true);
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [portfolio, setPortfolio] = useState<DemoPortfolio>({
     investmentCount: 0,
@@ -143,6 +210,36 @@ export default function MovieIntelligencePage() {
     loadMovieData();
   }, []);
 
+  useEffect(() => {
+    async function loadMediaData() {
+      setMediaLoading(true);
+
+      try {
+        const response = await fetch(
+          `/api/movie-media?movieId=${encodeURIComponent(movieId)}`,
+        );
+
+        if (!response.ok) {
+          throw new Error("Media unavailable");
+        }
+
+        setMediaData(await response.json());
+      } catch {
+        setMediaData({
+          movieId,
+          source: "FilmTrade official media catalogue",
+          live: false,
+          warning: "Official media could not be loaded.",
+          media: [],
+        });
+      } finally {
+        setMediaLoading(false);
+      }
+    }
+
+    loadMediaData();
+  }, [movieId]);
+
   const movie = useMemo<IntelligenceMovie | null>(() => {
     const liveMovie = data?.liveMovies.find((item) => item.imdbId === movieId);
 
@@ -153,7 +250,8 @@ export default function MovieIntelligencePage() {
         language: liveMovie.language,
         posterUrl: liveMovie.posterUrl,
         status: liveMovie.verifiedStatus || "Released",
-        releaseText: liveMovie.released || liveMovie.year || "Release date unavailable",
+        releaseText:
+          liveMovie.released || liveMovie.year || "Release date unavailable",
         genre: liveMovie.genre || "Genre unavailable",
         director: liveMovie.director || "Director unavailable",
         cast: liveMovie.actors || "Cast unavailable",
@@ -179,7 +277,9 @@ export default function MovieIntelligencePage() {
         posterUrl: upcomingMovie.posterUrl,
         status: upcomingMovie.status,
         releaseText: upcomingMovie.releaseNote,
-        genre: upcomingMovie.panIndia ? "Pan-India project" : "Indian cinema project",
+        genre: upcomingMovie.panIndia
+          ? "Pan-India project"
+          : "Indian cinema project",
         director: upcomingMovie.director || "Director not publicly confirmed",
         cast: upcomingMovie.lead,
         description:
@@ -211,6 +311,54 @@ export default function MovieIntelligencePage() {
       investorCount: scoreFor(`${movie.id}-investors`, 84, 180),
     };
   }, [movie]);
+
+  const buzz = useMemo(() => {
+    const media = mediaData?.media ?? [];
+
+    const totalViews = media.reduce(
+      (total, item) => total + Number(item.viewCount || 0),
+      0,
+    );
+
+    const latestPublishedAt = media
+      .map((item) => item.publishedAt)
+      .filter((item): item is string => Boolean(item))
+      .sort((first, second) => {
+        return new Date(second).getTime() - new Date(first).getTime();
+      })[0];
+
+    const daysSinceLatest = latestPublishedAt
+      ? Math.max(
+          0,
+          Math.floor(
+            (Date.now() - new Date(latestPublishedAt).getTime()) /
+              (1000 * 60 * 60 * 24),
+          ),
+        )
+      : null;
+
+    const viewScore = Math.min(55, Math.round(Math.log10(totalViews + 1) * 8));
+    const uploadScore = Math.min(25, media.length * 10);
+    const recencyScore =
+      daysSinceLatest === null ? 0 : daysSinceLatest <= 7 ? 20 : daysSinceLatest <= 30 ? 13 : 7;
+
+    const interestIndex = Math.min(100, viewScore + uploadScore + recencyScore);
+    const interestLabel =
+      interestIndex >= 75
+        ? "High attention"
+        : interestIndex >= 50
+          ? "Rising attention"
+          : "Early attention";
+
+    return {
+      totalViews,
+      latestPublishedAt,
+      daysSinceLatest,
+      interestIndex,
+      interestLabel,
+      mediaCount: media.length,
+    };
+  }, [mediaData]);
 
   function addActivity(message: string) {
     const current = getStoredValue<ActivityItem[]>(STORAGE_KEYS.activity, []);
@@ -262,6 +410,7 @@ export default function MovieIntelligencePage() {
       STORAGE_KEYS.portfolio,
       JSON.stringify(nextPortfolio),
     );
+
     addActivity(
       `Added a ${formatDemoValue(demoAmount)} simulated investment for ${movie.title}.`,
     );
@@ -289,7 +438,9 @@ export default function MovieIntelligencePage() {
           <p className="text-sm font-black uppercase tracking-[0.18em] text-[#087ba8]">
             Movie not found
           </p>
-          <h1 className="mt-3 text-3xl font-black">This intelligence record is unavailable.</h1>
+          <h1 className="mt-3 text-3xl font-black">
+            This intelligence record is unavailable.
+          </h1>
           <p className="mt-3 text-sm leading-6 text-slate-600">
             Return to the catalogue and choose a movie from the verified list.
           </p>
@@ -315,7 +466,11 @@ export default function MovieIntelligencePage() {
 
         <section className="mt-5 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
           <div className="grid lg:grid-cols-[330px_minmax(0,1fr)]">
-            <div className={`relative min-h-[390px] overflow-hidden ${!movie.posterUrl ? fallbackStyle() : "bg-[#0f2742]"}`}>
+            <div
+              className={`relative min-h-[390px] overflow-hidden ${
+                !movie.posterUrl ? fallbackStyle() : "bg-[#0f2742]"
+              }`}
+            >
               {movie.posterUrl && (
                 <img
                   src={movie.posterUrl}
@@ -351,7 +506,9 @@ export default function MovieIntelligencePage() {
                     FilmPulse
                   </p>
                   <p className="mt-1 text-4xl font-black">{scores.filmPulse}</p>
-                  <p className="mt-1 text-xs font-bold text-slate-500">Demo intelligence</p>
+                  <p className="mt-1 text-xs font-bold text-slate-500">
+                    Demo intelligence
+                  </p>
                 </div>
               </div>
 
@@ -410,6 +567,163 @@ export default function MovieIntelligencePage() {
 
         <section className="mt-8 grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-5">
+            <section className="rounded-3xl border border-[#cbe8f7] bg-[#e9f1fa] p-6 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[#087ba8]">
+                    Buzz & interest
+                  </p>
+                  <h2 className="mt-2 text-2xl font-black">
+                    FilmTrade Audience Interest
+                  </h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                    Built from official YouTube media reach, number of releases,
+                    and media recency. This is a transparent FilmTrade demo model,
+                    not BookMyShow or ticketing data.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-white px-5 py-4 text-center shadow-sm">
+                  <p className="text-xs font-black uppercase tracking-[0.12em] text-[#087ba8]">
+                    Interest index
+                  </p>
+                  <p className="mt-1 text-4xl font-black">{buzz.interestIndex}</p>
+                  <p className="mt-1 text-xs font-black text-slate-500">
+                    {buzz.interestLabel}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {[
+                  ["Official media reach", formatViews(String(buzz.totalViews))],
+                  ["Official releases", `${buzz.mediaCount} item${buzz.mediaCount === 1 ? "" : "s"}`],
+                  [
+                    "Latest official signal",
+                    buzz.latestPublishedAt
+                      ? formatDate(buzz.latestPublishedAt)
+                      : "Not announced",
+                  ],
+                  [
+                    "Data status",
+                    mediaData?.live ? "YouTube data live" : "Catalogue fallback",
+                  ],
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-2xl bg-white p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                      {label}
+                    </p>
+                    <p className="mt-2 text-sm font-black leading-6">{value}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 h-2 overflow-hidden rounded-full bg-white">
+                <div
+                  className="h-full rounded-full bg-[#00ABE4]"
+                  style={{ width: `${buzz.interestIndex}%` }}
+                />
+              </div>
+
+              <p className="mt-3 text-xs font-bold text-slate-500">
+                Model: official YouTube views, official media count, and recency.
+                Watchlist activity remains local to this browser.
+              </p>
+            </section>
+
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[#087ba8]">
+                    Official media
+                  </p>
+                  <h2 className="mt-2 text-2xl font-black">
+                    Glimpses, trailers, announcements and songs
+                  </h2>
+                </div>
+
+                <p className="text-xs font-black text-slate-500">
+                  {mediaData?.live ? "Live YouTube metadata" : "Official media catalogue"}
+                </p>
+              </div>
+
+              {mediaLoading && (
+                <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                  {[1, 2].map((item) => (
+                    <div
+                      key={item}
+                      className="h-56 animate-pulse rounded-2xl bg-slate-200"
+                    />
+                  ))}
+                </div>
+              )}
+
+              {!mediaLoading && (mediaData?.media.length ?? 0) === 0 && (
+                <div className="mt-6 rounded-2xl bg-[#f8fafc] p-6">
+                  <p className="font-black">Official media not announced yet.</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-500">
+                    This record will show verified official videos once they are
+                    added to the FilmTrade media catalogue.
+                  </p>
+                </div>
+              )}
+
+              {!mediaLoading && (mediaData?.media.length ?? 0) > 0 && (
+                <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                  {mediaData?.media.map((item) => (
+                    <article
+                      key={item.videoId}
+                      className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+                    >
+                      <div className="relative aspect-video overflow-hidden bg-slate-900">
+                        <img
+                          src={item.thumbnailUrl}
+                          alt={`${item.title} thumbnail`}
+                          className="h-full w-full object-cover"
+                        />
+                        <span className="absolute left-3 top-3 rounded-full bg-[#0f2742]/90 px-3 py-1 text-xs font-black text-white">
+                          {item.type}
+                        </span>
+                      </div>
+
+                      <div className="p-4">
+                        <p className="line-clamp-2 text-sm font-black leading-6">
+                          {item.title}
+                        </p>
+                        <p className="mt-2 text-xs font-bold text-slate-500">
+                          {item.channelTitle}
+                        </p>
+
+                        <div className="mt-4 flex items-center justify-between gap-3 text-xs font-black">
+                          <span className="text-[#087ba8]">
+                            {formatViews(item.viewCount)}
+                          </span>
+                          <span className="text-slate-500">
+                            {formatDate(item.publishedAt)}
+                          </span>
+                        </div>
+
+                        <a
+                          href={item.officialUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-4 block rounded-xl bg-[#0f2742] px-4 py-3 text-center text-sm font-black text-white"
+                        >
+                          Watch on YouTube
+                        </a>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+
+              {mediaData?.warning && (
+                <p className="mt-4 text-xs font-bold text-amber-700">
+                  {mediaData.warning}
+                </p>
+              )}
+            </section>
+
             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <p className="text-xs font-black uppercase tracking-[0.18em] text-[#087ba8]">
                 Why this movie matters
@@ -429,9 +743,14 @@ export default function MovieIntelligencePage() {
                       <p className="text-2xl font-black text-[#087ba8]">{value}</p>
                     </div>
                     <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-200">
-                      <div className="h-full rounded-full bg-[#00ABE4]" style={{ width: `${value}%` }} />
+                      <div
+                        className="h-full rounded-full bg-[#00ABE4]"
+                        style={{ width: `${value}%` }}
+                      />
                     </div>
-                    <p className="mt-3 text-xs font-bold text-slate-500">{note} · demo</p>
+                    <p className="mt-3 text-xs font-bold text-slate-500">
+                      {note} · demo
+                    </p>
                   </div>
                 ))}
               </div>
@@ -449,9 +768,13 @@ export default function MovieIntelligencePage() {
                   </p>
                 </div>
                 <div>
-                  <h2 className="text-2xl font-black">Strong attention with visible uncertainty.</h2>
+                  <h2 className="text-2xl font-black">
+                    Strong attention with visible uncertainty.
+                  </h2>
                   <p className="mt-3 text-sm leading-7 text-slate-600">
-                    FilmPulse is a simulated presentation score for this final-year project. It combines transparent demo indicators and should not be treated as a real investment recommendation.
+                    FilmPulse is a simulated presentation score for this
+                    final-year project. It combines transparent demo indicators
+                    and should not be treated as a real investment recommendation.
                   </p>
                   <div className="mt-5 flex flex-wrap gap-3">
                     <span className="rounded-full bg-[#e9f1fa] px-3 py-2 text-xs font-black text-[#087ba8]">
@@ -477,13 +800,24 @@ export default function MovieIntelligencePage() {
                   [`${movie.sourceType} available in FilmTrade catalogue.`, "Verified record"],
                   [`Release information: ${movie.releaseText}`, "Public metadata"],
                   [`Source link reviewed: ${movie.sourceName}`, "Source check"],
+                  [
+                    mediaData?.live
+                      ? `Official YouTube media data refreshed for ${movie.title}.`
+                      : "Official media links are shown from the FilmTrade catalogue.",
+                    mediaData?.live ? "Live YouTube data" : "Media catalogue",
+                  ],
                   ["FilmPulse and investment indicators are simulated for this demo.", "Demo boundary"],
                 ].map(([text, label], index) => (
-                  <div key={`${text}-${index}`} className="flex gap-4 rounded-2xl bg-[#f8fafc] p-4">
+                  <div
+                    key={`${text}-${index}`}
+                    className="flex gap-4 rounded-2xl bg-[#f8fafc] p-4"
+                  >
                     <div className="mt-1 h-3 w-3 shrink-0 rounded-full bg-[#00ABE4]" />
                     <div>
                       <p className="text-sm font-black">{text}</p>
-                      <p className="mt-1 text-xs font-bold text-slate-500">{label}</p>
+                      <p className="mt-1 text-xs font-bold text-slate-500">
+                        {label}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -502,13 +836,17 @@ export default function MovieIntelligencePage() {
                   ["Success probability", `${scores.successProbability}%`],
                 ].map(([label, value]) => (
                   <div key={label} className="rounded-2xl bg-[#f8fafc] p-5">
-                    <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">{label}</p>
+                    <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                      {label}
+                    </p>
                     <p className="mt-3 text-2xl font-black">{value}</p>
                   </div>
                 ))}
               </div>
               <p className="mt-5 text-sm leading-6 text-slate-500">
-                All funding, investor, ROI, and probability values are simulated for the FilmTrade final-year project. No financial product or investment offer is being made.
+                All funding, investor, ROI, and probability values are simulated
+                for the FilmTrade final-year project. No financial product or
+                investment offer is being made.
               </p>
             </section>
           </div>
@@ -526,11 +864,23 @@ export default function MovieIntelligencePage() {
                 </div>
                 <div className="rounded-2xl bg-white p-4">
                   <p className="font-black">Trust score</p>
-                  <p className="mt-1 text-slate-600">{scores.trust} / 100 · simulated demo score</p>
+                  <p className="mt-1 text-slate-600">
+                    {scores.trust} / 100 · simulated demo score
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-white p-4">
+                  <p className="font-black">Media source</p>
+                  <p className="mt-1 text-slate-600">
+                    {mediaData?.live
+                      ? "Live metadata from YouTube Data API v3."
+                      : "Curated official YouTube links."}
+                  </p>
                 </div>
                 <div className="rounded-2xl bg-white p-4">
                   <p className="font-black">Financial boundary</p>
-                  <p className="mt-1 text-slate-600">No KYC, escrow, payments, ownership, or real investments are processed.</p>
+                  <p className="mt-1 text-slate-600">
+                    No KYC, escrow, payments, ownership, or real investments are processed.
+                  </p>
                 </div>
               </div>
             </section>
@@ -539,9 +889,12 @@ export default function MovieIntelligencePage() {
               <p className="text-xs font-black uppercase tracking-[0.18em] text-[#087ba8]">
                 Your demo portfolio
               </p>
-              <p className="mt-3 text-3xl font-black">{formatDemoValue(portfolio.value)}</p>
+              <p className="mt-3 text-3xl font-black">
+                {formatDemoValue(portfolio.value)}
+              </p>
               <p className="mt-2 text-sm text-slate-500">
-                {portfolio.investmentCount} simulated investment{portfolio.investmentCount === 1 ? "" : "s"} in this browser.
+                {portfolio.investmentCount} simulated investment
+                {portfolio.investmentCount === 1 ? "" : "s"} in this browser.
               </p>
             </section>
           </aside>
@@ -551,12 +904,16 @@ export default function MovieIntelligencePage() {
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 p-3 backdrop-blur sm:static sm:mt-8 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
         <div className="mx-auto flex max-w-7xl gap-3 px-2 sm:px-0">
           <a
-            href={movie.trailerUrl || movie.sourceUrl}
+            href={
+              mediaData?.media[0]?.officialUrl ||
+              movie.trailerUrl ||
+              movie.sourceUrl
+            }
             target="_blank"
             rel="noreferrer"
             className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-black text-slate-700 sm:flex-none"
           >
-            Watch source
+            Watch official media
           </a>
           <button
             type="button"
