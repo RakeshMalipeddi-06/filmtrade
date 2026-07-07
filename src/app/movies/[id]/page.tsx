@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
+import { verifiedUpcomingMovies } from "@/data/verifiedUpcomingMovies";
 
 type LiveMovie = {
   imdbId: string;
@@ -241,7 +242,13 @@ export default function MovieIntelligencePage() {
   }, [movieId]);
 
   const movie = useMemo<IntelligenceMovie | null>(() => {
-    const liveMovie = data?.liveMovies.find((item) => item.imdbId === movieId);
+    const liveMovie = (data?.liveMovies ?? []).find(
+    (item) => item.imdbId === movieId
+  );
+
+  const upcomingMovie = verifiedUpcomingMovies.find(
+    (item) => item.id === movieId
+  );
 
     if (liveMovie) {
       return {
@@ -265,9 +272,7 @@ export default function MovieIntelligencePage() {
       };
     }
 
-    const upcomingMovie = data?.verifiedUpcomingMovies.find(
-      (item) => item.id === movieId,
-    );
+    
 
     if (upcomingMovie) {
       return {

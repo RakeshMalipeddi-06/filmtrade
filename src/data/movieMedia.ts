@@ -42,7 +42,7 @@ export const movieMedia: Record<string, MovieMediaItem[]> = {
     },
   ],
 
-  "jailer-2-manual": [
+  "jailer-2": [
     {
       videoId: "PZpb_b_r5bs",
       type: "Announcement",
@@ -60,12 +60,12 @@ export const movieMedia: Record<string, MovieMediaItem[]> = {
     },
   ],
 
-  "paradise-manual": [
+    paradise: [
     {
-      videoId: "iAtoZar5W58",
-      type: "Song",
-      label: "Paradise Song",
-      officialUrl: "https://www.youtube.com/watch?v=iAtoZar5W58",
+      videoId: "NkZFnpDhdCk",
+      type: "Glimpse",
+      label: "The Paradise Glimpse: RAW STATEMENT",
+      officialUrl: "https://www.youtube.com/watch?v=NkZFnpDhdCk",
     },
   ],
 
@@ -78,7 +78,7 @@ export const movieMedia: Record<string, MovieMediaItem[]> = {
     },
   ],
 
-  "pushpa-3-manual": [
+  "pushpa-3": [
     {
       videoId: "wQksDYahKZs",
       type: "Song",
@@ -93,6 +93,25 @@ export const movieMedia: Record<string, MovieMediaItem[]> = {
       type: "Announcement",
       label: "OG 2 Announcement",
       officialUrl: "https://www.youtube.com/watch?v=zCHtn4jwn_Q",
+    },
+  ],
+
+  toxic: [
+    {
+      videoId: "n8sMfqOO9c0",
+      type: "Glimpse",
+      label: "Toxic Glimpse",
+      officialUrl: "https://www.youtube.com/watch?v=n8sMfqOO9c0",
+    },
+  ],
+  
+
+  ramayana: [
+    {
+      videoId: "gzUu-FJ7s-Y",
+      type: "Glimpse",
+      label: "Ramayana Glimpse",
+      officialUrl: "https://www.youtube.com/watch?v=gzUu-FJ7s-Y",
     },
   ],
 };
