@@ -207,6 +207,12 @@ export default function MoviesPage() {
               href="/discover"
               className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black transition hover:border-[#00ABE4] hover:text-[#087ba8]"
             >
+              <a
+  href="/compare"
+  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black transition hover:border-[#00ABE4] hover:text-[#087ba8]"
+>
+  Compare movies
+</a>
               Demo projects
             </a>
 
