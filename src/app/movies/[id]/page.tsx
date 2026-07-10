@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { verifiedUpcomingMovies } from "@/data/verifiedUpcomingMovies";
 import { movieEvidence } from "@/data/movieEvidence";
+import { movieStatusOverrides } from "@/data/movieStatus";
 
 type LiveMovie = {
   imdbId: string;
@@ -225,34 +226,41 @@ export default function MovieIntelligencePage() {
     );
 
     if (liveMovie) {
-      return {
-        id: liveMovie.imdbId,
-        title: liveMovie.title,
-        language: liveMovie.language,
-        posterUrl: liveMovie.posterUrl,
-        status: liveMovie.verifiedStatus || "Released",
-        releaseText:
-          liveMovie.released || liveMovie.year || "Release date unavailable",
-        genre: liveMovie.genre || "Genre unavailable",
-        director: liveMovie.director || "Director unavailable",
-        cast: liveMovie.actors || "Cast unavailable",
-        description: liveMovie.plot || "Movie description unavailable.",
-        sourceName: liveMovie.releaseSourceName || liveMovie.source || "OMDb / IMDb",
-        sourceUrl:
-          liveMovie.releaseSourceUrl ||
-          `https://www.imdb.com/title/${liveMovie.imdbId}/`,
-        sourceType: "Live record",
-      };
-    }
+  const statusOverride = movieStatusOverrides[liveMovie.imdbId];
+
+  return {
+    id: liveMovie.imdbId,
+    title: liveMovie.title,
+    language: statusOverride?.languages ?? liveMovie.language,
+    posterUrl: liveMovie.posterUrl,
+    status: statusOverride?.status ?? "Status not confirmed",
+    releaseText:
+      statusOverride?.releaseDate ??
+      liveMovie.released ??
+      liveMovie.year ??
+      "Release date unavailable",
+    genre: liveMovie.genre || "Genre unavailable",
+    director: liveMovie.director || "Director unavailable",
+    cast: liveMovie.actors || "Cast unavailable",
+    description: liveMovie.plot || "Movie description unavailable.",
+    sourceName: liveMovie.releaseSourceName || liveMovie.source || "OMDb / IMDb",
+    sourceUrl:
+      liveMovie.releaseSourceUrl ??
+      `https://www.imdb.com/title/${liveMovie.imdbId}/`,
+    trailerUrl: null,
+    sourceType: "Live record",
+  };
+}
 
     if (upcomingMovie) {
+      const statusOverride = movieStatusOverrides[upcomingMovie.id];
       return {
         id: upcomingMovie.id,
         title: upcomingMovie.title,
-        language: upcomingMovie.language,
+        language: statusOverride?.languages ?? upcomingMovie.language,
         posterUrl: upcomingMovie.posterUrl,
-        status: upcomingMovie.status,
-        releaseText: upcomingMovie.releaseNote,
+        status: statusOverride?.status ?? "Status not confirmed",
+       releaseText: statusOverride?.releaseDate ?? upcomingMovie.releaseNote,
         genre: upcomingMovie.panIndia
           ? "Pan-India project"
           : "Indian cinema project",

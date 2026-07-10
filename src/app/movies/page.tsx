@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { movieStatusOverrides } from "@/data/movieStatus";
 
 type LiveMovie = {
   imdbId: string;
@@ -48,73 +49,171 @@ type MovieApiResponse = {
   error?: string;
 };
 
-type Filter =
-  | "all"
-  | "upcoming"
-  | "released"
-  | "telugu"
-  | "hindi"
-  | "tamil"
-  | "malayalam"
-  | "kannada"
-  | "pan-india";
+type MovieCard = {
+  id: string;
+  title: string;
+  posterUrl: string | null;
+  language: string;
+  genre: string;
+  status: string;
+  yearOrRelease: string;
+  isUpcoming: boolean;
+  panIndia: boolean;
+  description: string;
+};
 
-const filters: Array<{ value: Filter; label: string }> = [
-  { value: "all", label: "All" },
+const filters = [
+  { value: "all", label: "All movies" },
+  { value: "trending", label: "Trending" },
   { value: "upcoming", label: "Upcoming" },
-  { value: "released", label: "Released" },
   { value: "telugu", label: "Telugu" },
   { value: "hindi", label: "Hindi" },
   { value: "tamil", label: "Tamil" },
-  { value: "malayalam", label: "Malayalam" },
-  { value: "kannada", label: "Kannada" },
   { value: "pan-india", label: "Pan-India" },
-];
+] as const;
+
+type Filter = (typeof filters)[number]["value"];
+
+function getLiveStatus(movie: LiveMovie) {
+  const override = movieStatusOverrides[movie.imdbId];
+
+  if (override?.status) return override.status;
+  if (movie.verifiedStatus === "Upcoming") return "Upcoming";
+  if (movie.verifiedStatus === "Released") return "Released";
+
+  const releaseDate = new Date(movie.released);
+
+  if (
+    !Number.isNaN(releaseDate.getTime()) &&
+    releaseDate.getTime() > Date.now()
+  ) {
+    return "Upcoming";
+  }
+
+  return "Released";
+}
 
 function isUpcomingLiveMovie(movie: LiveMovie) {
-  if (movie.verifiedStatus) {
-    return movie.verifiedStatus === "Upcoming";
-  }
+  const status = getLiveStatus(movie).toLowerCase();
 
-  const date = new Date(movie.released);
-
-  if (Number.isNaN(date.getTime())) {
-    return movie.imdbRating === "N/A";
-  }
-
-  return date.getTime() > Date.now();
-}
-
-function formatDate(value: string) {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value === "N/A" ? "Release date not confirmed" : value;
-  }
-
-  return new Intl.DateTimeFormat("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(date);
-}
-
-function hasLanguage(value: string, language: string) {
-  return value
-    .toLowerCase()
-    .split(",")
-    .map((item) => item.trim())
-    .includes(language);
-}
-
-function languageLabel(movie: LiveMovie) {
-  const knownLanguages = ["Telugu", "Hindi", "Tamil", "Malayalam", "Kannada"];
-
-  const match = knownLanguages.find((language) =>
-    hasLanguage(movie.language, language.toLowerCase()),
+  return (
+    status.includes("confirmed") ||
+    status.includes("announced") ||
+    status.includes("production") ||
+    status.includes("development") ||
+    status.includes("expected") ||
+    status.includes("upcoming") ||
+    status.includes("tba")
   );
+}
 
-  return match || movie.language.split(",")[0]?.trim() || "Indian cinema";
+function MovieCardItem({ movie }: { movie: MovieCard }) {
+  return (
+    <a
+      href={`/movies/${movie.id}`}
+      className="group overflow-hidden rounded-2xl border border-[#dce8f4] bg-white shadow-[0_10px_30px_rgba(15,35,65,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_38px_rgba(15,35,65,0.14)]"
+    >
+      <div className="relative aspect-[2/3] overflow-hidden bg-[#dce8f4]">
+        {movie.posterUrl ? (
+          <img
+            src={movie.posterUrl}
+            alt={`${movie.title} poster`}
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full items-end bg-[radial-gradient(circle_at_top_right,#8ec9ef,transparent_38%),linear-gradient(145deg,#17385f,#5e9ac6)] p-5">
+            <p className="text-2xl font-black leading-none text-white">
+              {movie.title}
+            </p>
+          </div>
+        )}
+
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#071d36]/80 to-transparent" />
+
+        <div className="absolute left-3 top-3 flex flex-wrap gap-2">
+          {movie.panIndia && (
+            <span className="rounded-full bg-[#0aaee7] px-2.5 py-1 text-[9px] font-black text-white shadow-sm">
+              PAN-INDIA
+            </span>
+          )}
+
+          {movie.isUpcoming && (
+            <span className="rounded-full bg-amber-200 px-2.5 py-1 text-[9px] font-black text-amber-900 shadow-sm">
+              UPCOMING
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="p-4">
+        <h3 className="truncate text-base font-black text-[#10243e]">
+          {movie.title}
+        </h3>
+
+        <p className="mt-1 truncate text-xs font-bold text-[#087ba8]">
+          {movie.language} · {movie.yearOrRelease}
+        </p>
+
+        <div className="mt-4 flex items-center justify-between border-t border-[#edf3f8] pt-3">
+          <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
+            {movie.genre}
+          </span>
+
+          <span
+            className={`rounded-full px-2.5 py-1 text-[10px] font-black ${
+              movie.isUpcoming
+                ? "bg-amber-50 text-amber-700"
+                : "bg-emerald-50 text-emerald-700"
+            }`}
+          >
+            {movie.status}
+          </span>
+        </div>
+      </div>
+    </a>
+  );
+}
+
+function MovieSection({
+  eyebrow,
+  title,
+  subtitle,
+  movies,
+}: {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  movies: MovieCard[];
+}) {
+  if (movies.length === 0) return null;
+
+  return (
+    <section className="mt-12">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-[#0aaee7]">
+            {eyebrow}
+          </p>
+
+          <h2 className="mt-2 text-3xl font-black tracking-tight text-[#10243e]">
+            {title}
+          </h2>
+
+          <p className="mt-2 text-sm text-slate-500">{subtitle}</p>
+        </div>
+
+        <span className="rounded-full bg-[#e9f5fc] px-4 py-2 text-xs font-black text-[#087ba8]">
+          {movies.length} titles
+        </span>
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        {movies.map((movie) => (
+          <MovieCardItem key={movie.id} movie={movie} />
+        ))}
+      </div>
+    </section>
+  );
 }
 
 export default function MoviesPage() {
@@ -131,7 +230,7 @@ export default function MoviesPage() {
 
         if (!response.ok) {
           const failed = await response.json();
-          throw new Error(failed.error || "Unable to load the movie catalogue.");
+          throw new Error(failed.error || "Unable to load movie catalogue.");
         }
 
         setData(await response.json());
@@ -139,7 +238,7 @@ export default function MoviesPage() {
         setError(
           requestError instanceof Error
             ? requestError.message
-            : "Unable to load the movie catalogue.",
+            : "Unable to load movie catalogue.",
         );
       } finally {
         setLoading(false);
@@ -149,504 +248,257 @@ export default function MoviesPage() {
     loadMovies();
   }, []);
 
-  const liveMovies = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-
-    return (data?.liveMovies || [])
+  const allMovies = useMemo<MovieCard[]>(() => {
+    const liveMovies = (data?.liveMovies ?? [])
       .filter((movie) => movie.title.trim().toLowerCase() !== "the paradise")
-      .filter((movie) => {
-        const upcoming = isUpcomingLiveMovie(movie);
+      .map((movie) => {
+        const override = movieStatusOverrides[movie.imdbId];
+        const languages = override?.languages ?? movie.language;
 
-        const matchesSearch =
-          !normalizedQuery ||
-          movie.title.toLowerCase().includes(normalizedQuery) ||
-          movie.actors.toLowerCase().includes(normalizedQuery) ||
-          movie.director.toLowerCase().includes(normalizedQuery);
-
-        if (!matchesSearch) return false;
-        if (filter === "all") return true;
-        if (filter === "upcoming") return upcoming;
-        if (filter === "released") return !upcoming;
-        if (filter === "pan-india") return movie.language.split(",").length > 1;
-
-        return hasLanguage(movie.language, filter);
+        return {
+          id: movie.imdbId,
+          title: movie.title,
+          posterUrl: movie.posterUrl,
+          language: languages.split(",")[0]?.trim() || "Indian cinema",
+          genre: movie.genre || "Indian cinema",
+          status: getLiveStatus(movie),
+          yearOrRelease: override?.releaseDate ?? movie.year,
+          isUpcoming: isUpcomingLiveMovie(movie),
+          panIndia: languages.split(",").length > 1,
+          description:
+            movie.plot === "N/A"
+              ? "Source-backed movie record."
+              : movie.plot,
+        };
       });
-  }, [data, filter, query]);
 
-  const upcomingMovies = useMemo(() => {
+    const upcomingMovies = (data?.verifiedUpcomingMovies ?? []).map((movie) => {
+      const override = movieStatusOverrides[movie.id];
+      const languages = override?.languages ?? movie.language;
+
+      return {
+        id: movie.id,
+        title: movie.title,
+        posterUrl: movie.posterUrl,
+        language: languages.split(",")[0]?.trim() || "Indian cinema",
+        genre: "Upcoming cinema",
+        status: override?.status ?? movie.status,
+        yearOrRelease: override?.releaseDate ?? movie.releaseNote,
+        isUpcoming: true,
+        panIndia: movie.panIndia || languages.split(",").length > 1,
+        description: `${movie.lead}${movie.director ? ` · ${movie.director}` : ""}`,
+      };
+    });
+
+    const seenTitles = new Set<string>();
+
+    return [...upcomingMovies, ...liveMovies].filter((movie) => {
+      const key = movie.title.trim().toLowerCase();
+
+      if (seenTitles.has(key)) return false;
+
+      seenTitles.add(key);
+      return true;
+    });
+  }, [data]);
+
+  const filteredMovies = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    return (data?.verifiedUpcomingMovies || []).filter((movie) => {
+    return allMovies.filter((movie) => {
       const matchesSearch =
         !normalizedQuery ||
-        movie.title.toLowerCase().includes(normalizedQuery) ||
-        movie.lead.toLowerCase().includes(normalizedQuery) ||
-        (movie.director || "").toLowerCase().includes(normalizedQuery);
+        `${movie.title} ${movie.language} ${movie.genre} ${movie.description}`
+          .toLowerCase()
+          .includes(normalizedQuery);
 
       if (!matchesSearch) return false;
-      if (filter === "released") return false;
-      if (filter === "all" || filter === "upcoming") return true;
+      if (filter === "all" || filter === "trending") return true;
+      if (filter === "upcoming") return movie.isUpcoming;
       if (filter === "pan-india") return movie.panIndia;
 
       return movie.language.toLowerCase() === filter;
     });
-  }, [data, filter, query]);
+  }, [allMovies, filter, query]);
 
-  const totalShown = liveMovies.length + upcomingMovies.length;
+  const trendingMovies = filteredMovies.filter((movie) => !movie.isUpcoming);
+  const upcomingMovies = filteredMovies.filter((movie) => movie.isUpcoming);
+  const panIndiaMovies = filteredMovies.filter((movie) => movie.panIndia);
+  const teluguMovies = filteredMovies.filter(
+    (movie) => movie.language.toLowerCase() === "telugu",
+  );
 
   return (
-    <main className="min-h-screen bg-[#f8fafc] px-5 py-8 text-[#0f172a] sm:px-8">
-      <div className="mx-auto max-w-7xl">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <a href="/" className="text-xl font-black tracking-tight">
-            FILM<span className="text-[#00ABE4]">TRADE</span>
+    <main className="min-h-screen bg-[#f6f9fc] pb-16 text-[#10243e]">
+      <header className="border-b border-[#dce8f4] bg-white">
+        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-5 py-5 sm:px-8">
+          <a href="/dashboard" className="text-xl font-black tracking-tight">
+            FILM<span className="text-[#0aaee7]">TRADE</span>
           </a>
 
-          <div className="flex items-center gap-3">
-            <a
-              href="/discover"
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black transition hover:border-[#00ABE4] hover:text-[#087ba8]"
-            >
-              <a
-  href="/compare"
-  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black transition hover:border-[#00ABE4] hover:text-[#087ba8]"
->
-  Compare movies
-</a>
-              Demo projects
+          <nav className="hidden items-center gap-6 text-sm font-bold text-slate-500 lg:flex">
+            <a href="/dashboard" className="transition hover:text-[#087ba8]">
+              Dashboard
             </a>
+            <a href="/discover" className="transition hover:text-[#087ba8]">
+              Discover
+            </a>
+            <a href="/movies" className="text-[#087ba8]">
+              Movies
+            </a>
+            <a href="/watchlist" className="transition hover:text-[#087ba8]">
+              Watchlist
+            </a>
+          </nav>
 
-            <a
-              href="/demo"
-              className="rounded-xl bg-[#0f2742] px-4 py-2 text-sm font-black text-white transition hover:bg-[#183c63]"
-            >
-              Pitch journey
-            </a>
-          </div>
+          <a
+            href="/watchlist"
+            className="rounded-xl bg-[#0aaee7] px-4 py-2.5 text-xs font-black text-white shadow-sm transition hover:bg-[#078fc1]"
+          >
+            MY WATCHLIST
+          </a>
         </div>
+      </header>
 
-        <section className="relative mt-7 overflow-hidden rounded-[30px] border border-[#d6e6f5] bg-[#e9f1fa] p-7 shadow-sm sm:p-10">
-          <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-[#b9e6ff] blur-3xl" />
+      <div className="mx-auto max-w-[1600px] px-5 sm:px-8">
+        <section className="mt-8 overflow-hidden rounded-3xl border border-[#d6e8f5] bg-[linear-gradient(120deg,#eaf5ff_0%,#f8fcff_48%,#d8efff_100%)] p-7 shadow-[0_12px_35px_rgba(15,50,85,0.07)] sm:p-10">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-[#087ba8]">
+            FilmTrade catalogue
+          </p>
 
-          <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1fr)_330px] lg:items-end">
+          <div className="mt-4 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.22em] text-[#087ba8]">
-                Pan-India movie catalogue
-              </p>
-
-              <h1 className="mt-4 text-4xl font-black tracking-tight sm:text-5xl">
-                Real movie data. Verified upcoming cinema.
+              <h1 className="text-4xl font-black tracking-tight text-[#10243e] sm:text-5xl">
+                Explore cinema with context.
               </h1>
 
-              <p className="mt-5 max-w-2xl leading-7 text-slate-600">
-                Explore curated Telugu, Hindi, Tamil, Malayalam, and Kannada films.
-                Live records use OMDb and IMDb data. Announced titles use clearly
-                labelled verified records.
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
+                Browse source-backed movie records, upcoming projects, language
+                categories, and FilmTrade research information.
               </p>
             </div>
 
-            <div className="rounded-3xl bg-[#0f2742] p-6 text-white shadow-xl">
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-200">
-                Catalogue rule
+            <div className="rounded-2xl border border-white/80 bg-white/75 px-5 py-4 shadow-sm backdrop-blur">
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
+                Catalogue status
               </p>
-
-              <p className="mt-3 text-2xl font-black">No guessed data.</p>
-
-              <p className="mt-3 text-sm leading-6 text-slate-300">
-                Ratings, votes, posters, trailers, and release dates appear only
-                when a reliable source provides them.
+              <p className="mt-1 text-lg font-black text-[#087ba8]">
+                Live movie records
               </p>
             </div>
           </div>
         </section>
 
-        <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-          <label className="block">
-            <span className="sr-only">Search movies</span>
+        <section className="mt-7 rounded-3xl border border-[#dce8f4] bg-white p-5 shadow-[0_10px_30px_rgba(15,35,65,0.06)] sm:p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+            <label className="flex flex-1 items-center gap-3 rounded-2xl border border-[#dce8f4] bg-[#f8fbfe] px-4 py-4">
+              <span className="text-lg text-[#0aaee7]">⌕</span>
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search movies, actors, directors..."
+                className="w-full bg-transparent text-sm font-medium text-[#10243e] outline-none placeholder:text-slate-400"
+              />
+            </label>
 
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search title, actor, or director"
-              className="w-full rounded-xl border border-slate-200 bg-[#f8fafc] px-4 py-3 text-sm font-medium outline-none transition placeholder:text-slate-400 focus:border-[#00ABE4] focus:bg-white"
-            />
-          </label>
-
-          <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
-            {filters.map((item) => (
-              <button
-                key={item.value}
-                type="button"
-                onClick={() => setFilter(item.value)}
-                className={`shrink-0 rounded-xl px-4 py-3 text-sm font-black transition ${
-                  filter === item.value
-                    ? "bg-[#0f2742] text-white"
-                    : "border border-slate-200 bg-white text-slate-600 hover:border-[#00ABE4] hover:text-[#087ba8]"
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
+            <div className="flex gap-2 overflow-x-auto pb-1 lg:max-w-[720px]">
+              {filters.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => setFilter(item.value)}
+                  className={`shrink-0 rounded-xl px-4 py-3 text-xs font-black transition ${
+                    filter === item.value
+                      ? "bg-[#0aaee7] text-white shadow-sm"
+                      : "bg-[#eaf4fc] text-[#087ba8] hover:bg-[#d9effc]"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
           </div>
         </section>
 
         {loading && (
-          <section className="mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-            {[1, 2, 3, 4, 5, 6].map((item) => (
+          <section className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            {[1, 2, 3, 4, 5].map((item) => (
               <div
                 key={item}
-                className="animate-pulse overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
-              >
-                <div className="h-72 bg-slate-200" />
-
-                <div className="space-y-3 p-6">
-                  <div className="h-5 w-3/4 rounded bg-slate-200" />
-                  <div className="h-4 w-1/2 rounded bg-slate-200" />
-                  <div className="h-4 w-full rounded bg-slate-100" />
-                </div>
-              </div>
+                className="aspect-[2/3] animate-pulse rounded-2xl bg-[#dce8f4]"
+              />
             ))}
           </section>
         )}
 
         {error && (
           <section className="mt-8 rounded-3xl border border-red-200 bg-red-50 p-7">
-            <p className="text-sm font-black text-red-700">
+            <p className="font-black text-red-700">
               Movie catalogue could not load.
             </p>
-
-            <p className="mt-3 text-sm leading-6 text-red-600">{error}</p>
+            <p className="mt-2 text-sm text-red-600">{error}</p>
           </section>
         )}
 
         {!loading && !error && (
           <>
-            <div className="mt-10 flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-[#00ABE4]">
-                  Curated catalogue
-                </p>
-
-                <h2 className="mt-2 text-3xl font-black tracking-tight">
-                  {totalShown} title{totalShown === 1 ? "" : "s"} shown
-                </h2>
-              </div>
-
-              <p className="text-xs font-bold text-slate-500">
-                Fetched at{" "}
-                {data?.fetchedAt
-                  ? new Date(data.fetchedAt).toLocaleString("en-IN")
-                  : "Not available"}
+            <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm font-bold text-slate-500">
+                {filteredMovies.length} movie records shown
+              </p>
+              <p className="text-xs font-black text-[#087ba8]">
+                Information is based on available catalogue sources
               </p>
             </div>
 
-            {liveMovies.length > 0 && (
-              <section className="mt-8">
-                <div className="flex items-center gap-3">
-                  <span className="h-2.5 w-2.5 rounded-full bg-[#00ABE4]" />
+            <MovieSection
+              eyebrow="Now showing"
+              title="Trending now"
+              subtitle="Released titles and active catalogue records."
+              movies={trendingMovies}
+            />
 
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-[#087ba8]">
-                      Live OMDb records
-                    </p>
+            <MovieSection
+              eyebrow="Upcoming cinema"
+              title="Coming soon"
+              subtitle="Publicly announced and source-backed upcoming titles."
+              movies={upcomingMovies}
+            />
 
-                    <p className="mt-1 text-sm text-slate-500">
-                      Real metadata, poster links, ratings, and votes where available.
-                    </p>
-                  </div>
-                </div>
+            <MovieSection
+              eyebrow="Multi-language projects"
+              title="Pan-India spotlight"
+              subtitle="Projects listed across multiple Indian languages."
+              movies={panIndiaMovies}
+            />
 
-                <div className="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                  {liveMovies.map((movie) => {
-                    const upcoming = isUpcomingLiveMovie(movie);
+            <MovieSection
+              eyebrow="Regional catalogue"
+              title="Telugu cinema"
+              subtitle="A focused row for Telugu movie records."
+              movies={teluguMovies}
+            />
 
-                    return (
-                      <article
-                        key={movie.imdbId}
-                        className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
-                      >
-                        <a
-                          href={`/movies/${movie.imdbId}`}
-                          className="block focus:outline-none focus:ring-4 focus:ring-[#00ABE4]/30"
-                        >
-                          <div className="relative h-72 overflow-hidden bg-[#0f2742]">
-                            {movie.posterUrl ? (
-                              <img
-                                src={movie.posterUrl}
-                                alt={`${movie.title} poster`}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <div className="flex h-full items-end bg-[radial-gradient(circle_at_top_right,#3d8bb8,transparent_38%),linear-gradient(145deg,#0f2742,#1d5277)] p-6 text-white">
-                                <p className="text-4xl font-black leading-none">
-                                  {movie.title}
-                                </p>
-                              </div>
-                            )}
-
-                            <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_45%,rgba(4,14,31,0.78)_100%)]" />
-
-                            <div className="absolute left-5 right-5 top-5 flex items-start justify-between gap-3">
-                              <span className="rounded-full border border-white/25 bg-[#0f2742]/75 px-3 py-1.5 text-[10px] font-black tracking-[0.13em] text-white backdrop-blur">
-                                LIVE DATA
-                              </span>
-
-                              <span
-                                className={`rounded-full px-3 py-1.5 text-[10px] font-black ${
-                                  upcoming
-                                    ? "bg-amber-100 text-amber-800"
-                                    : "bg-emerald-100 text-emerald-800"
-                                }`}
-                              >
-                                {upcoming ? "UPCOMING" : "RELEASED"}
-                              </span>
-                            </div>
-
-                            <div className="absolute bottom-5 left-5 right-5 text-white">
-                              <p className="text-xs font-black tracking-[0.16em] text-white/70">
-                                {languageLabel(movie)} · {movie.year}
-                              </p>
-
-                              <p className="mt-2 text-3xl font-black leading-none">
-                                {movie.title}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="p-6">
-                            <p className="text-sm font-black text-[#087ba8]">
-                              {movie.genre}
-                            </p>
-
-                            <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">
-                              {movie.plot === "N/A"
-                                ? "Plot information is not available from the source."
-                                : movie.plot}
-                            </p>
-
-                            <div className="mt-5 grid gap-3 rounded-2xl bg-[#f8fafc] p-4">
-                              <div className="flex justify-between gap-4 text-sm">
-                                <span className="font-bold text-slate-500">Release</span>
-                                <span className="text-right font-black">
-                                  {formatDate(movie.released)}
-                                </span>
-                              </div>
-
-                              <div className="flex justify-between gap-4 text-sm">
-                                <span className="font-bold text-slate-500">Director</span>
-                                <span className="text-right font-black">
-                                  {movie.director}
-                                </span>
-                              </div>
-
-                              <div className="flex justify-between gap-4 text-sm">
-                                <span className="font-bold text-slate-500">Cast</span>
-                                <span className="text-right font-black">
-                                  {movie.actors}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="mt-5 flex items-center justify-between gap-4 rounded-2xl border border-[#d6e6f5] bg-[#e9f1fa] p-4">
-                              <div>
-                                <p className="text-xs font-black uppercase tracking-[0.12em] text-[#087ba8]">
-                                  IMDb rating
-                                </p>
-
-                                <p className="mt-1 text-2xl font-black text-[#0f2742]">
-                                  {movie.imdbRating === "N/A"
-                                    ? "Not available"
-                                    : `${movie.imdbRating} / 10`}
-                                </p>
-                              </div>
-
-                              <div className="text-right">
-                                <p className="text-xs font-black uppercase tracking-[0.12em] text-[#087ba8]">
-                                  Votes
-                                </p>
-
-                                <p className="mt-1 text-sm font-black text-[#0f2742]">
-                                  {movie.imdbVotes === "N/A"
-                                    ? "Not available"
-                                    : movie.imdbVotes}
-                                </p>
-                              </div>
-                            </div>
-
-                            <p className="mt-5 text-sm font-black text-[#087ba8]">
-                              View intelligence →
-                            </p>
-                          </div>
-                        </a>
-
-                        <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-6 py-4 text-xs">
-                          <span className="font-bold text-slate-500">
-                            Source: {movie.source}
-                          </span>
-
-                          <a
-                            href={`https://www.imdb.com/title/${movie.imdbId}/`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="font-black text-[#00ABE4]"
-                          >
-                            View source ↗
-                          </a>
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-
-            {upcomingMovies.length > 0 && (
-              <section className="mt-12">
-                <div className="flex items-center gap-3">
-                  <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">
-                      Verified upcoming titles
-                    </p>
-
-                    <p className="mt-1 text-sm text-slate-500">
-                      Publicly confirmed project information only.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                  {upcomingMovies.map((movie) => (
-                    <article
-                      key={movie.id}
-                      className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
-                    >
-                      <a
-                        href={`/movies/${movie.id}`}
-                        className="block focus:outline-none focus:ring-4 focus:ring-[#00ABE4]/30"
-                      >
-                        <div className="relative flex h-72 flex-col justify-between overflow-hidden bg-[radial-gradient(circle_at_top_right,#a8dff7,transparent_30%),radial-gradient(circle_at_bottom_left,#f7d99d,transparent_28%),linear-gradient(145deg,#0f2742,#245e85)] p-6 text-white">
-                          {movie.posterUrl && (
-                            <img
-                              src={movie.posterUrl}
-                              alt={`${movie.title} announcement poster`}
-                              className="absolute inset-0 h-full w-full object-cover"
-                            />
-                          )}
-
-                          {movie.posterUrl && (
-                            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(4,14,31,0.15),rgba(4,14,31,0.86))]" />
-                          )}
-
-                          <div className="absolute -right-12 -top-12 h-44 w-44 rounded-full border border-white/10 bg-white/5" />
-                          <div className="absolute -bottom-14 -left-10 h-40 w-40 rounded-full border border-white/10 bg-white/5" />
-
-                          <div className="relative flex items-start justify-between gap-3">
-                            <span className="rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-[10px] font-black tracking-[0.13em] backdrop-blur">
-                              VERIFIED UPCOMING
-                            </span>
-
-                            {movie.panIndia && (
-                              <span className="rounded-full bg-amber-100 px-3 py-1.5 text-[10px] font-black text-amber-800">
-                                PAN-INDIA
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="relative">
-                            <p className="text-xs font-black tracking-[0.16em] text-sky-100">
-                              {movie.language.toUpperCase()} CINEMA
-                            </p>
-
-                            <p className="mt-3 text-4xl font-black leading-[0.92]">
-                              {movie.title}
-                            </p>
-
-                            <p className="mt-4 text-sm font-bold text-white/75">
-                              {movie.status}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="p-6">
-                          <div className="rounded-2xl bg-[#f8fafc] p-4">
-                            <div className="flex justify-between gap-4 text-sm">
-                              <span className="font-bold text-slate-500">Lead</span>
-                              <span className="text-right font-black">{movie.lead}</span>
-                            </div>
-
-                            <div className="mt-3 flex justify-between gap-4 text-sm">
-                              <span className="font-bold text-slate-500">Director</span>
-                              <span className="text-right font-black">
-                                {movie.director || "Not publicly confirmed"}
-                              </span>
-                            </div>
-
-                            <div className="mt-3 flex justify-between gap-4 text-sm">
-                              <span className="font-bold text-slate-500">Release</span>
-                              <span className="text-right font-black">
-                                {movie.releaseNote}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                            <p className="text-xs font-black uppercase tracking-[0.12em] text-amber-700">
-                              Data availability
-                            </p>
-
-                            <p className="mt-2 text-sm leading-6 text-amber-800">
-                              Official media, verified sources, and project information
-                              are shown on the intelligence page.
-                            </p>
-                          </div>
-
-                          <p className="mt-5 text-sm font-black text-[#087ba8]">
-                            View intelligence →
-                          </p>
-                        </div>
-                      </a>
-
-                      <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-6 py-4 text-xs">
-                        <span className="font-bold text-slate-500">
-                          Verified {formatDate(movie.lastVerified)}
-                        </span>
-
-                        <a
-                          href={movie.sourceUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="font-black text-[#00ABE4]"
-                        >
-                          {movie.sourceName} ↗
-                        </a>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {totalShown === 0 && (
-              <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
-                <p className="text-xl font-black">No titles match this filter.</p>
-
-                <p className="mt-3 text-sm text-slate-600">
-                  Try another title, actor, director, language, or category.
+            {filteredMovies.length === 0 && (
+              <section className="mt-12 rounded-3xl border border-dashed border-[#b9d5e8] bg-white p-12 text-center">
+                <p className="text-xl font-black text-[#10243e]">
+                  No movies found.
+                </p>
+                <p className="mt-3 text-sm text-slate-500">
+                  This title is not currently available in the FilmTrade movie
+                  catalogue. Please check again after future catalogue updates.
                 </p>
               </section>
             )}
 
-            <section className="mt-12 rounded-3xl border border-[#d6e6f5] bg-[#e9f1fa] p-6 shadow-sm">
+            <section className="mt-14 rounded-3xl border border-[#cfe7f7] bg-[#eaf6ff] p-6 sm:p-8">
               <p className="text-xs font-black uppercase tracking-[0.18em] text-[#087ba8]">
-                FilmTrade boundary
+                Catalogue boundary
               </p>
-
               <p className="mt-3 max-w-4xl text-sm leading-7 text-slate-600">
-                This catalogue supports movie discovery and research. A title
-                appearing here does not mean it is available for investment,
-                funding, revenue sharing, or any financial activity on FilmTrade.
+                FilmTrade presents movie research records and publicly available
+                project information. It does not offer investments, funding,
+                revenue sharing, or financial advice.
               </p>
             </section>
           </>

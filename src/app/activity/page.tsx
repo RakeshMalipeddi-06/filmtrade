@@ -1,157 +1,325 @@
-import { demoProjects } from "@/data/demoProjects";
+"use client";
 
-const activityItems = [
+import { useEffect, useMemo, useState } from "react";
+
+type ActivityItem = {
+  id: string;
+  message: string;
+  createdAt: string;
+};
+
+const ACTIVITY_KEY = "filmtrade-demo-activity";
+
+const defaultActivity: ActivityItem[] = [
   {
-    type: "FilmPulse update",
-    title: "After the Monsoon signal refreshed",
-    detail: "Its illustrative FilmPulse value remains the highest in the local demo ranking.",
-    time: "Today · 10:24 AM",
-    projectSlug: "after-the-monsoon",
-    icon: "✦",
+    id: "catalogue-ready",
+    message: "Catalogue refreshed. Live and verified movie records loaded.",
+    createdAt: "This session",
   },
   {
-    type: "Milestone update",
-    title: "Orbit 47 moved to production planning",
-    detail: "A fictional milestone status was updated in the demo project timeline.",
-    time: "Today · 9:10 AM",
-    projectSlug: "orbit-47",
-    icon: "✓",
-  },
-  {
-    type: "Watchlist action",
-    title: "The Last Frame was added to the demo watchlist",
-    detail: "This is a UI-only local watchlist event for the FilmTrade portfolio concept.",
-    time: "Yesterday · 6:42 PM",
-    projectSlug: "the-last-frame",
-    icon: "＋",
-  },
-  {
-    type: "Information label",
-    title: "Paper Skies trust label reviewed",
-    detail: "The illustrative information-quality label was refreshed using local mock data.",
-    time: "Yesterday · 2:18 PM",
-    projectSlug: "paper-skies",
-    icon: "i",
-  },
-  {
-    type: "FilmPulse update",
-    title: "Night Shift entered the discovery view",
-    detail: "The fictional project is now included in the local FilmPulse ranking list.",
-    time: "Monday · 4:05 PM",
-    projectSlug: "night-shift",
-    icon: "✦",
-  },
-  {
-    type: "Project update",
-    title: "Golden Hour production status updated",
-    detail: "The demo project remains an illustrative production-stage concept.",
-    time: "Monday · 11:30 AM",
-    projectSlug: "golden-hour",
-    icon: "◌",
+    id: "demo-boundary",
+    message:
+      "FilmTrade is running in demo mode. No payments or real investments are processed.",
+    createdAt: "This session",
   },
 ];
 
-const filters = ["All updates", "FilmPulse", "Milestones", "Watchlist", "Project info"];
+function getStoredActivity() {
+  try {
+    return JSON.parse(
+      window.localStorage.getItem(ACTIVITY_KEY) || "[]",
+    ) as ActivityItem[];
+  } catch {
+    return [];
+  }
+}
+
+function activityType(message: string) {
+  const text = message.toLowerCase();
+
+  if (text.includes("producer submitted")) {
+    return {
+      label: "Producer submission",
+      badge: "bg-[#e9f1fa] text-[#087ba8]",
+      icon: "↗",
+    };
+  }
+
+  if (text.includes("saved") && text.includes("draft")) {
+    return {
+      label: "Producer draft",
+      badge: "bg-slate-100 text-slate-700",
+      icon: "□",
+    };
+  }
+
+  if (text.includes("admin changed")) {
+    return {
+      label: "Admin review",
+      badge: "bg-amber-100 text-amber-800",
+      icon: "✓",
+    };
+  }
+
+  if (text.includes("investment")) {
+    return {
+      label: "Demo portfolio",
+      badge: "bg-[#e9f1fa] text-[#087ba8]",
+      icon: "₹",
+    };
+  }
+
+  if (text.includes("watchlist") || text.includes("watching")) {
+    return {
+      label: "Watchlist",
+      badge: "bg-violet-50 text-violet-700",
+      icon: "★",
+    };
+  }
+
+  if (text.includes("catalogue")) {
+    return {
+      label: "Catalogue",
+      badge: "bg-emerald-50 text-emerald-700",
+      icon: "✓",
+    };
+  }
+
+  if (text.includes("demo mode") || text.includes("no payments")) {
+    return {
+      label: "Demo notice",
+      badge: "bg-slate-100 text-slate-700",
+      icon: "i",
+    };
+  }
+
+  return {
+    label: "Platform",
+    badge: "bg-slate-100 text-slate-700",
+    icon: "•",
+  };
+}
+
+function formatTimestamp(value: string) {
+  if (!value || value === "This session") {
+    return "This session";
+  }
+
+  return value;
+}
 
 export default function ActivityPage() {
+  const [storedActivity, setStoredActivity] = useState<ActivityItem[]>([]);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    setStoredActivity(getStoredActivity());
+    setReady(true);
+  }, []);
+
+  const activity = useMemo(() => {
+    return [...storedActivity, ...defaultActivity];
+  }, [storedActivity]);
+
+  const summary = useMemo(() => {
+    const producerEvents = storedActivity.filter((item) => {
+      const text = item.message.toLowerCase();
+
+      return text.includes("producer submitted") || text.includes("draft");
+    }).length;
+
+    const adminEvents = storedActivity.filter((item) =>
+      item.message.toLowerCase().includes("admin changed"),
+    ).length;
+
+    return {
+      total: activity.length,
+      producerEvents,
+      adminEvents,
+    };
+  }, [activity.length, storedActivity]);
+
+  function clearActivity() {
+    window.localStorage.removeItem(ACTIVITY_KEY);
+    setStoredActivity([]);
+  }
+
+  function refreshActivity() {
+    setStoredActivity(getStoredActivity());
+  }
+
   return (
     <main className="min-h-screen bg-[#f8fafc] px-5 py-8 text-[#0f172a] sm:px-8">
-      <div className="mx-auto max-w-6xl">
-        <a href="/dashboard" className="text-sm font-black text-[#00ABE4]">
-          ← Back to dashboard
-        </a>
+      <div className="mx-auto max-w-5xl">
+        <header className="flex flex-wrap items-start justify-between gap-5">
+          <div>
+            <a href="/dashboard" className="text-sm font-black text-[#087ba8]">
+              ← Back to dashboard
+            </a>
 
-        <section className="mt-5 rounded-3xl border border-[#d6e6f5] bg-[#e9f1fa] p-7 shadow-sm sm:p-10">
-          <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-[#087ba8]">
-                Activity feed
-              </p>
-              <h1 className="mt-4 text-4xl font-black tracking-tight sm:text-5xl">
-                Demo project updates.
-              </h1>
-              <p className="mt-4 max-w-2xl leading-7 text-slate-600">
-                A chronological view of fictional FilmPulse changes, mock milestones, and local watchlist actions.
-              </p>
-            </div>
-            <span className="w-fit rounded-full bg-white px-4 py-2 text-xs font-black text-[#087ba8] shadow-sm">
-              Demo simulation only
-            </span>
-          </div>
-        </section>
+            <p className="mt-6 text-xs font-black uppercase tracking-[0.2em] text-[#087ba8]">
+              Demo activity log
+            </p>
 
-        <section className="mt-8 flex flex-wrap gap-2">
-          {filters.map((filter, index) => (
-            <button
-              key={filter}
-              className={`rounded-full px-4 py-2 text-xs font-black transition ${
-                index === 0
-                  ? "bg-[#00ABE4] text-white"
-                  : "bg-white text-[#087ba8] border border-[#d6e6f5] hover:bg-[#e9f1fa]"
-              }`}
-            >
-              {filter}
-            </button>
-          ))}
-        </section>
+            <h1 className="mt-2 text-4xl font-black tracking-tight">
+              FilmTrade activity
+            </h1>
 
-        <section className="mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 px-6 py-5">
-            <p className="text-sm font-black">Latest demo activity</p>
-            <p className="mt-1 text-sm text-slate-500">
-              Static local events for the FilmTrade portfolio project.
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600">
+              A local record of watchlist actions, producer submissions, and
+              admin review updates made in this browser.
             </p>
           </div>
 
-          <div className="divide-y divide-slate-100">
-            {activityItems.map((item) => {
-              const project = demoProjects.find((entry) => entry.slug === item.projectSlug);
+          <div className="flex flex-wrap gap-2">
+            <a
+              href="/producer"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black transition hover:border-[#00ABE4] hover:text-[#087ba8]"
+            >
+              Producer
+            </a>
 
-              return (
-                <article key={`${item.title}-${item.time}`} className="p-5 sm:p-6">
-                  <div className="flex gap-4">
-                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#e9f1fa] text-lg font-black text-[#087ba8]">
-                      {item.icon}
-                    </span>
+            <a
+              href="/admin"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black transition hover:border-[#00ABE4] hover:text-[#087ba8]"
+            >
+              Admin
+            </a>
 
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                        <div>
-                          <span className="rounded-full bg-[#f8fafc] px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#087ba8]">
-                            {item.type}
-                          </span>
-                          <h2 className="mt-3 text-lg font-black">{item.title}</h2>
-                        </div>
-                        <p className="shrink-0 text-xs font-bold text-slate-400">{item.time}</p>
-                      </div>
+            <a
+              href="/watchlist"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black transition hover:border-[#00ABE4] hover:text-[#087ba8]"
+            >
+              Watchlist
+            </a>
 
-                      <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">{item.detail}</p>
+            <button
+              type="button"
+              onClick={refreshActivity}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black transition hover:border-[#00ABE4] hover:text-[#087ba8]"
+            >
+              Refresh
+            </button>
 
-                      {project && (
-                        <a
-                          href={`/projects/${project.slug}`}
-                          className="mt-4 inline-flex items-center gap-3 rounded-xl border border-slate-200 bg-[#f8fafc] px-3 py-2 text-sm font-black transition hover:border-[#00ABE4] hover:bg-[#e9f1fa] hover:text-[#087ba8]"
-                        >
-                          <span className={`grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br ${project.poster} text-[10px] text-white`}>
-                            {project.artwork.slice(0, 1)}
-                          </span>
-                          View {project.title}
-                          <span className="text-[#00ABE4]">→</span>
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
+            <button
+              type="button"
+              onClick={clearActivity}
+              className="rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-black text-red-600 transition hover:bg-red-50"
+            >
+              Reset log
+            </button>
+          </div>
+        </header>
+
+        <section className="mt-8 rounded-3xl border border-[#d6e6f5] bg-[#e9f1fa] p-6 shadow-sm sm:p-8">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#087ba8]">
+            Activity summary
+          </p>
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-2xl bg-white p-5">
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                Recorded actions
+              </p>
+              <p className="mt-2 text-3xl font-black">{summary.total}</p>
+            </div>
+
+            <div className="rounded-2xl bg-white p-5">
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                Producer events
+              </p>
+              <p className="mt-2 text-3xl font-black">
+                {summary.producerEvents}
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-white p-5">
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                Admin reviews
+              </p>
+              <p className="mt-2 text-3xl font-black">{summary.adminEvents}</p>
+            </div>
+
+            <div className="rounded-2xl bg-white p-5">
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                Storage
+              </p>
+              <p className="mt-2 text-xl font-black">This browser</p>
+            </div>
           </div>
         </section>
 
-        <section className="mt-8 rounded-3xl bg-[#0f2742] p-7 text-white shadow-sm">
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-200">Demo notice</p>
-          <h2 className="mt-3 text-2xl font-black">This feed does not track real activity.</h2>
-          <p className="mt-4 max-w-3xl leading-7 text-slate-300">
-            Every update shown here is fictional local content for the student portfolio. In Phase 2, this layout can connect to database-backed mock project events.
+        {!ready && (
+          <div className="mt-8 space-y-4">
+            {[1, 2, 3].map((item) => (
+              <div
+                key={item}
+                className="h-24 animate-pulse rounded-3xl bg-slate-200"
+              />
+            ))}
+          </div>
+        )}
+
+        {ready && (
+          <section className="mt-8 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <div className="border-b border-slate-200 px-6 py-5">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#087ba8]">
+                Timeline
+              </p>
+
+              <h2 className="mt-2 text-2xl font-black">
+                Producer, admin, and viewer activity
+              </h2>
+            </div>
+
+            <div className="divide-y divide-slate-100">
+              {activity.map((item) => {
+                const type = activityType(item.message);
+
+                return (
+                  <article
+                    key={item.id}
+                    className="flex gap-4 px-6 py-5 transition hover:bg-[#f8fafc]"
+                  >
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#0f2742] text-lg font-black text-white">
+                      {type.icon}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-black ${type.badge}`}
+                        >
+                          {type.label}
+                        </span>
+
+                        <span className="text-xs font-bold text-slate-400">
+                          {formatTimestamp(item.createdAt)}
+                        </span>
+                      </div>
+
+                      <p className="mt-3 text-sm font-semibold leading-6 text-slate-700">
+                        {item.message}
+                      </p>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        <section className="mt-8 rounded-3xl border border-amber-200 bg-amber-50 p-6">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">
+            Important
+          </p>
+
+          <p className="mt-3 text-sm leading-7 text-amber-800">
+            This activity log is stored only in your current browser using local
+            storage. Resetting browser data removes saved project drafts,
+            submissions, review updates, and this activity history. It does not
+            represent real investments, transactions, legal verification, or
+            financial records.
           </p>
         </section>
       </div>

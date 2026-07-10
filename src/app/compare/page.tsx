@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { verifiedUpcomingMovies } from "@/data/verifiedUpcomingMovies";
 import { movieEvidence } from "@/data/movieEvidence";
+import { manualMovieScores } from "@/data/movieScores";
+import { movieStatusOverrides } from "@/data/movieStatus";
 
 type LiveMovie = {
   imdbId: string;
@@ -93,8 +95,8 @@ export default function CompareMoviesPage() {
     const live = (data?.liveMovies ?? []).map((movie) => ({
       id: movie.imdbId,
       title: movie.title,
-      language: movie.language,
-      status: movie.verifiedStatus || "Released",
+      language: movieStatusOverrides[movie.imdbId]?.languages ?? movie.language,
+      status: movieStatusOverrides[movie.imdbId]?.status ?? movie.verifiedStatus ?? "Status not confirmed",
       director: movie.director || "Not available",
       cast: movie.actors || "Not available",
       genre: movie.genre || "Not available",
@@ -105,8 +107,8 @@ export default function CompareMoviesPage() {
     const upcoming = verifiedUpcomingMovies.map((movie) => ({
       id: movie.id,
       title: movie.title,
-      language: movie.language,
-      status: movie.status,
+      language: movieStatusOverrides[movie.id]?.languages ?? movie.language,
+      status: movieStatusOverrides[movie.id]?.status ?? movie.status,
       director: movie.director || "Not publicly confirmed",
       cast: movie.lead,
       genre: movie.panIndia ? "Pan-India project" : "Indian cinema project",
@@ -179,24 +181,32 @@ export default function CompareMoviesPage() {
     const mediaCount = media.length;
     const evidenceCount = movieEvidence[movie.id]?.length ?? 0;
 
-    const interest = Math.min(
-      100,
-      Math.round(
-        Math.min(55, Math.log10(views + 1) * 8) +
-          Math.min(25, mediaCount * 10) +
-          Math.min(20, evidenceCount * 5),
-      ),
-    );
+   const manualScore = manualMovieScores[movie.id];
 
-    return {
-      filmPulse: scoreFor(movie.id, 76, 21),
-      trust: scoreFor(`${movie.id}-trust`, 80, 17),
-      interest,
-      risk: scoreFor(`${movie.id}-risk`, 0, 10) > 6 ? "Medium" : "Low",
-      views,
-      mediaCount,
-      evidenceCount,
-    };
+const calculatedInterest = Math.min(
+  100,
+  Math.round(
+    Math.min(55, Math.log10(views + 1) * 8) +
+      Math.min(25, mediaCount * 10) +
+      Math.min(20, evidenceCount * 5),
+  ),
+);
+
+const interest = manualScore?.interest ?? calculatedInterest;
+
+const calculatedFilmPulse = scoreFor(movie.id, 76, 21);
+
+const filmPulse = manualScore?.filmPulse ?? calculatedFilmPulse;
+
+return {
+  filmPulse,
+  trust: scoreFor(`${movie.id}-trust`, 80, 17),
+  interest,
+  risk: scoreFor(`${movie.id}-risk`, 0, 10) > 6 ? "Medium" : "Low",
+  views,
+  mediaCount,
+  evidenceCount,
+};
   }
 
   const firstMetrics = getMetrics(firstMovie);

@@ -1,589 +1,628 @@
 ﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
-type LiveMovie = {
-  imdbId: string;
-  title: string;
-  language: string;
-  posterUrl: string | null;
-};
-
-type UpcomingMovie = {
+type Movie = {
   id: string;
   title: string;
-  language: string;
   posterUrl: string | null;
+  language: string;
+  status: string;
+  pulse: number;
+};
+
+type LoggedInUser = {
+  name?: string;
+  email?: string;
+  role?: string;
 };
 
 type MovieApiResponse = {
-  liveMovies: LiveMovie[];
-  verifiedUpcomingMovies: UpcomingMovie[];
+  liveMovies?: Array<{
+    imdbId: string;
+    title: string;
+    posterUrl: string | null;
+    language: string;
+    verifiedStatus?: string | null;
+  }>;
+  verifiedUpcomingMovies?: Array<{
+    id: string;
+    title: string;
+    posterUrl: string | null;
+    language: string;
+    status?: string;
+  }>;
 };
 
-type DashboardMovie = {
-  id: string;
-  title: string;
-  language: string;
-  posterUrl: string | null;
-  status: "Live record" | "Verified upcoming";
-  filmPulse: number;
-  trust: number;
-  risk: "Low" | "Medium";
-};
+const USER_KEY = "filmtrade-demo-user";
 
-type ActivityItem = {
-  id: string;
-  message: string;
-  createdAt: string;
-};
-
-type DemoPortfolio = {
-  investmentCount: number;
-  value: number;
-};
-
-const STORAGE_KEYS = {
-  watchlist: "filmtrade-demo-watchlist",
-  activity: "filmtrade-demo-activity",
-  portfolio: "filmtrade-demo-portfolio",
-};
-
-const initialWatchlist = ["Dragon", "Spirit", "Raaka"];
-
-const initialActivity: ActivityItem[] = [
+const fallbackMovies: Movie[] = [
   {
-    id: "catalogue-ready",
-    message: "Catalogue refreshed. Live and verified records loaded.",
-    createdAt: "This session",
+    id: "dragon",
+    title: "Dragon",
+    posterUrl: null,
+    language: "Telugu",
+    status: "Upcoming",
+    pulse: 91,
   },
   {
-    id: "demo-boundary",
-    message: "Demo boundary active. No real investment or payment activity.",
-    createdAt: "This session",
+    id: "the-paradise",
+    title: "The Paradise",
+    posterUrl: null,
+    language: "Telugu",
+    status: "In production",
+    pulse: 93,
+  },
+  {
+    id: "spirit",
+    title: "Spirit",
+    posterUrl: null,
+    language: "Telugu",
+    status: "Announced",
+    pulse: 89,
+  },
+  {
+    id: "ramayana",
+    title: "Ramayana",
+    posterUrl: null,
+    language: "Hindi",
+    status: "Announced",
+    pulse: 87,
+  },
+  {
+    id: "they-call-him-og-2",
+    title: "They Call Him OG 2",
+    posterUrl: null,
+    language: "Telugu",
+    status: "Upcoming",
+    pulse: 85,
+  },
+  {
+    id: "god-of-war",
+    title: "God of War",
+    posterUrl: null,
+    language: "Telugu",
+    status: "TBA",
+    pulse: 84,
+  },
+  {
+    id: "pushpa-3",
+    title: "Pushpa 3: The Rampage",
+    posterUrl: null,
+    language: "Telugu",
+    status: "TBA",
+    pulse: 82,
+  },
+  {
+    id: "kalki-2898-ad-part-2",
+    title: "Kalki 2898 AD Part 2",
+    posterUrl: null,
+    language: "Telugu",
+    status: "Reported",
+    pulse: 86,
   },
 ];
 
-function scoreFor(id: string, minimum: number, range: number) {
-  const value = id
-    .split("")
-    .reduce((total, character) => total + character.charCodeAt(0), 0);
+function scoreFor(id: string, base: number) {
+  let hash = 0;
 
-  return minimum + (value % range);
-}
-
-function fallbackStyle(index: number) {
-  const styles = [
-    "bg-[radial-gradient(circle_at_top_right,#8ed8ff,transparent_34%),linear-gradient(145deg,#0f2742,#245e85)]",
-    "bg-[radial-gradient(circle_at_bottom_left,#f6d28d,transparent_30%),linear-gradient(145deg,#172554,#334155)]",
-    "bg-[radial-gradient(circle_at_top_left,#a7f3d0,transparent_28%),linear-gradient(145deg,#0f172a,#155e75)]",
-    "bg-[radial-gradient(circle_at_bottom_right,#c4b5fd,transparent_30%),linear-gradient(145deg,#1e1b4b,#334155)]",
-  ];
-
-  return styles[index % styles.length];
-}
-
-function formatDemoValue(value: number) {
-  return `₹${value.toLocaleString("en-IN")}`;
-}
-
-function getStoredValue<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") {
-    return fallback;
+  for (let index = 0; index < id.length; index += 1) {
+    hash = (hash * 31 + id.charCodeAt(index)) % 100;
   }
 
-  try {
-    const savedValue = window.localStorage.getItem(key);
-    return savedValue ? (JSON.parse(savedValue) as T) : fallback;
-  } catch {
-    return fallback;
-  }
+  return Math.min(96, base + (hash % 13));
+}
+
+function TinyChart({ light = false }: { light?: boolean }) {
+  return (
+    <svg viewBox="0 0 120 35" className="mt-2 h-7 w-full">
+      <path
+        d="M0 29 C12 25, 14 18, 25 22 S39 13, 50 18 S63 25, 75 13 S91 22, 101 10 S112 13, 120 4"
+        fill="none"
+        stroke={light ? "#A7C7E7" : "#10B981"}
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function StatCard({
+  title,
+  value,
+  detail,
+  dark = false,
+  icon,
+}: {
+  title: string;
+  value: string;
+  detail: string;
+  dark?: boolean;
+  icon?: string;
+}) {
+  return (
+    <article
+      className={`h-[126px] min-w-0 rounded-[20px] p-4 shadow-[0_10px_30px_rgba(20,40,80,0.08)] ${
+        dark
+          ? "bg-[linear-gradient(145deg,#1C2B48,#10223D)] text-white"
+          : "bg-white text-[#1C2B48]"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <p className={`text-xs font-bold ${dark ? "text-[#E8ECEF]" : "text-slate-500"}`}>
+          {title}
+        </p>
+
+        {icon && (
+          <span className="grid h-7 w-7 place-items-center rounded-lg bg-[#E8ECEF] text-sm text-[#2563EB]">
+            {icon}
+          </span>
+        )}
+      </div>
+
+      <p className="mt-3 text-3xl font-black tracking-tight">{value}</p>
+
+      {title !== "Active Investments" && <TinyChart light={dark} />}
+
+      <p className={`mt-1 text-[11px] font-bold ${dark ? "text-[#C4D8E5]" : "text-slate-500"}`}>
+        <span className="mr-1 text-[#10B981]">↑</span>
+        {detail}
+      </p>
+    </article>
+  );
 }
 
 export default function DashboardPage() {
-  const [data, setData] = useState<MovieApiResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [storageReady, setStorageReady] = useState(false);
-  const [query, setQuery] = useState("");
-  const [watchlist, setWatchlist] = useState<string[]>(initialWatchlist);
-  const [activity, setActivity] = useState<ActivityItem[]>(initialActivity);
-  const [portfolio, setPortfolio] = useState<DemoPortfolio>({
-    investmentCount: 0,
-    value: 0,
-  });
+  const router = useRouter();
+
+  const [movies, setMovies] = useState<Movie[]>([]);
+  const [activeMovie, setActiveMovie] = useState(0);
+  const [userName, setUserName] = useState("User");
+  const [userRole, setUserRole] = useState("Investor");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showSearchResults, setShowSearchResults] = useState(false);
 
   useEffect(() => {
-    setWatchlist(getStoredValue(STORAGE_KEYS.watchlist, initialWatchlist));
-    setActivity(getStoredValue(STORAGE_KEYS.activity, initialActivity));
-    setPortfolio(
-      getStoredValue(STORAGE_KEYS.portfolio, {
-        investmentCount: 0,
-        value: 0,
-      }),
-    );
-    setStorageReady(true);
+    try {
+      const savedUser = window.localStorage.getItem(USER_KEY);
+
+      if (!savedUser) return;
+
+      const user = JSON.parse(savedUser) as LoggedInUser;
+
+      if (user.name?.trim()) {
+        setUserName(user.name.trim());
+      }
+
+      if (user.role?.trim()) {
+        setUserRole(user.role.trim());
+      }
+    } catch {
+      setUserName("User");
+      setUserRole("Investor");
+    }
   }, []);
 
   useEffect(() => {
-    async function loadDashboardData() {
+    async function loadMovies() {
       try {
         const response = await fetch("/api/telugu-movies");
 
         if (!response.ok) {
-          throw new Error("Catalogue unavailable");
+          throw new Error("Unable to load movie catalogue.");
         }
 
-        setData(await response.json());
+        const data = (await response.json()) as MovieApiResponse;
+
+        const upcomingMovies = (data.verifiedUpcomingMovies ?? []).map((movie) => ({
+          id: movie.id,
+          title: movie.title,
+          posterUrl: movie.posterUrl,
+          language: movie.language,
+          status: movie.status || "Upcoming",
+          pulse: scoreFor(movie.id, 82),
+        }));
+
+        const liveMovies = (data.liveMovies ?? []).map((movie) => ({
+          id: movie.imdbId,
+          title: movie.title,
+          posterUrl: movie.posterUrl,
+          language: movie.language.split(",")[0]?.trim() || "Indian cinema",
+          status: movie.verifiedStatus || "Released",
+          pulse: scoreFor(movie.imdbId, 78),
+        }));
+
+        const uniqueMovies = [...upcomingMovies, ...liveMovies].filter(
+          (movie, index, array) =>
+            array.findIndex(
+              (item) => item.title.toLowerCase() === movie.title.toLowerCase(),
+            ) === index,
+        );
+
+        setMovies(uniqueMovies.slice(0, 14));
       } catch {
-        setData({ liveMovies: [], verifiedUpcomingMovies: [] });
-      } finally {
-        setLoading(false);
+        setMovies([]);
       }
     }
 
-    loadDashboardData();
+    loadMovies();
   }, []);
 
-  useEffect(() => {
-    if (storageReady) {
-      window.localStorage.setItem(STORAGE_KEYS.watchlist, JSON.stringify(watchlist));
-    }
-  }, [storageReady, watchlist]);
+  const carouselMovies = movies.length > 0 ? movies : fallbackMovies;
 
-  useEffect(() => {
-    if (storageReady) {
-      window.localStorage.setItem(STORAGE_KEYS.activity, JSON.stringify(activity));
-    }
-  }, [activity, storageReady]);
+  const featuredMovie = carouselMovies[activeMovie] ?? fallbackMovies[0];
 
-  useEffect(() => {
-    if (storageReady) {
-      window.localStorage.setItem(STORAGE_KEYS.portfolio, JSON.stringify(portfolio));
-    }
-  }, [portfolio, storageReady]);
-
-  const opportunities = useMemo<DashboardMovie[]>(() => {
-    const live = (data?.liveMovies || []).map((movie) => ({
-      id: movie.imdbId,
-      title: movie.title,
-      language: movie.language.split(",")[0]?.trim() || "Indian cinema",
-      posterUrl: movie.posterUrl,
-      status: "Live record" as const,
-      filmPulse: scoreFor(movie.imdbId, 78, 18),
-      trust: scoreFor(`${movie.imdbId}-trust`, 82, 14),
-      risk:
-        scoreFor(movie.imdbId, 0, 10) > 6
-          ? ("Medium" as const)
-          : ("Low" as const),
-    }));
-
-    const upcoming = (data?.verifiedUpcomingMovies || []).map((movie) => ({
-      id: movie.id,
-      title: movie.title,
-      language: movie.language,
-      posterUrl: movie.posterUrl,
-      status: "Verified upcoming" as const,
-      filmPulse: scoreFor(movie.id, 74, 20),
-      trust: scoreFor(`${movie.id}-trust`, 80, 16),
-      risk:
-        scoreFor(movie.id, 0, 10) > 6
-          ? ("Medium" as const)
-          : ("Low" as const),
-    }));
-
-    return [...live, ...upcoming]
-      .sort((first, second) => second.filmPulse - first.filmPulse)
-      .slice(0, 4);
-  }, [data]);
-
-  const filteredOpportunities = opportunities.filter((movie) =>
-    movie.title.toLowerCase().includes(query.trim().toLowerCase()),
+  const watchlistMovies = useMemo(
+    () => carouselMovies.slice(0, 3),
+    [carouselMovies],
   );
 
-  const watchlistMovies = opportunities
-    .filter((movie) => watchlist.includes(movie.title))
-    .slice(0, 3);
+  const searchResults = carouselMovies.filter((movie) =>
+    movie.title.toLowerCase().includes(searchQuery.trim().toLowerCase()),
+  );
 
-  const featuredMovie = opportunities[0];
+  const hasSearchText = searchQuery.trim().length > 0;
+  const profileInitial = userName.charAt(0).toUpperCase() || "U";
 
-  function addActivity(message: string) {
-    setActivity((current) =>
-      [
-        {
-          id: `${Date.now()}-${Math.random()}`,
-          message,
-          createdAt: "Just now",
-        },
-        ...current,
-      ].slice(0, 6),
-    );
-  }
+  function openMovie(movie: Movie, index?: number) {
+    if (typeof index === "number") {
+      setActiveMovie(index);
+    }
 
-  function toggleWatchlist(title: string) {
-    const isWatching = watchlist.includes(title);
-
-    setWatchlist((current) =>
-      isWatching
-        ? current.filter((item) => item !== title)
-        : [...current, title],
-    );
-
-    addActivity(
-      isWatching
-        ? `Removed ${title} from your demo watchlist.`
-        : `Added ${title} to your demo watchlist.`,
-    );
-  }
-
-  function investDemo(movie: DashboardMovie) {
-    const demoAmount = 10000;
-
-    setPortfolio((current) => ({
-      investmentCount: current.investmentCount + 1,
-      value: current.value + demoAmount,
-    }));
-
-    addActivity(
-      `Added a ${formatDemoValue(demoAmount)} simulated investment for ${movie.title}.`,
-    );
+    setSearchQuery("");
+    setShowSearchResults(false);
+    router.push(`/movies/${movie.id}`);
   }
 
   return (
-    <main className="min-h-screen bg-[#f8fafc] px-5 py-8 text-[#0f172a] sm:px-8">
-      <div className="mx-auto max-w-7xl">
-        <header className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-[#087ba8]">
-              Investor dashboard · demo mode
-            </p>
-            <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
-              Your film intelligence overview
-            </h1>
-          </div>
+    <main className="h-[calc(100vh-88px)] overflow-hidden bg-[#F8FAFC] p-4 text-[#1C2B48] lg:p-5">
+      <div className="mx-auto h-full max-w-[1600px]">
+        <header className="flex h-[58px] items-center justify-between gap-4 rounded-[20px] bg-white px-5 shadow-[0_8px_25px_rgba(20,40,80,0.07)]">
+          <div className="relative hidden max-w-[560px] flex-1 md:block">
+            <label className="flex items-center gap-3 rounded-full bg-[#F8FAFC] px-5 py-2.5">
+              <span className="text-lg text-slate-400">⌕</span>
 
-          <label className="w-full sm:w-auto sm:min-w-[340px]">
-            <span className="sr-only">Search opportunities</span>
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search today’s opportunities"
-              className="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium outline-none shadow-sm transition placeholder:text-slate-400 focus:border-[#00ABE4]"
-            />
-          </label>
-        </header>
+              <input
+                value={searchQuery}
+                onChange={(event) => {
+                  setSearchQuery(event.target.value);
+                  setShowSearchResults(true);
+                }}
+                onFocus={() => setShowSearchResults(true)}
+                placeholder="Search movies, producers, projects..."
+                className="w-full bg-transparent text-sm font-medium outline-none placeholder:text-slate-400"
+              />
+            </label>
 
-        <section className="mt-6 overflow-hidden rounded-3xl border border-[#d6e6f5] bg-[#e9f1fa] p-6 shadow-sm sm:p-8">
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-end">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-[#087ba8]">
-                Market pulse
-              </p>
-              <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">
-                Good morning, Rakesh.
-              </h2>
-              <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600">
-                Market attention is concentrated around upcoming pan-India
-                projects. Review momentum and trust signals before using the
-                demo investment flow.
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-white p-5 shadow-sm">
-              <p className="text-xs font-black uppercase tracking-[0.15em] text-[#087ba8]">
-                Today
-              </p>
-              <p className="mt-3 text-3xl font-black">Positive</p>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                {opportunities.length || "No"} curated opportunities are available for review.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {[
-            ["Portfolio", formatDemoValue(portfolio.value), "Simulated value only"],
-            [
-              "Active investments",
-              portfolio.investmentCount.toString(),
-              "Demo investments in this browser",
-            ],
-            ["Market FilmPulse", "78", "Simulated platform average"],
-            ["Trust status", "Verified", "Demo profile · no real KYC"],
-          ].map(([label, value, note]) => (
-            <article
-              key={label}
-              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-            >
-              <p className="text-xs font-black uppercase tracking-[0.13em] text-slate-500">
-                {label}
-              </p>
-              <p className="mt-3 text-3xl font-black">{value}</p>
-              <p className="mt-2 text-sm text-slate-500">{note}</p>
-            </article>
-          ))}
-        </section>
-
-        <div className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <section>
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-[#087ba8]">
-                  Today’s opportunities
-                </p>
-                <h2 className="mt-2 text-3xl font-black tracking-tight">
-                  Review with confidence
-                </h2>
-              </div>
-
-              <a href="/movies" className="text-sm font-black text-[#087ba8]">
-                View all movies -&gt;
-              </a>
-            </div>
-
-            {loading && (
-              <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                {[1, 2, 3, 4].map((item) => (
-                  <div
-                    key={item}
-                    className="h-72 animate-pulse rounded-3xl bg-slate-200"
-                  />
-                ))}
-              </div>
-            )}
-
-            {!loading && filteredOpportunities.length === 0 && (
-              <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-                <p className="font-black">No matching opportunity found.</p>
-                <p className="mt-2 text-sm text-slate-500">
-                  Try a different movie title.
-                </p>
-              </div>
-            )}
-
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              {filteredOpportunities.map((movie, index) => (
-                <article
-                  key={movie.id}
-                  className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
-                >
-                  <div
-                    className={`relative h-52 overflow-hidden ${
-                      !movie.posterUrl
-                        ? fallbackStyle(index)
-                        : "bg-[#0f2742]"
-                    }`}
-                  >
-                    {movie.posterUrl && (
-                      <img
-                        src={movie.posterUrl}
-                        alt={`${movie.title} poster`}
-                        className="h-full w-full object-cover"
-                      />
-                    )}
-
-                    <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_35%,rgba(4,14,31,0.82)_100%)]" />
-
-                    <div className="absolute bottom-4 left-4 right-4 text-white">
-                      <p className="text-xs font-black tracking-[0.13em] text-white/75">
-                        {movie.language.toUpperCase()}
-                      </p>
-                      <h3 className="mt-1 text-2xl font-black">{movie.title}</h3>
-                    </div>
-                  </div>
-
-                  <div className="p-5">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-black uppercase tracking-[0.12em] text-[#087ba8]">
-                          FilmPulse · demo
-                        </p>
-                        <p className="mt-1 text-3xl font-black">{movie.filmPulse}</p>
-                      </div>
-
-                      <div className="text-right text-sm">
-                        <p className="font-black">Trust {movie.trust}</p>
-                        <p
-                          className={
-                            movie.risk === "Low"
-                              ? "mt-1 font-bold text-emerald-600"
-                              : "mt-1 font-bold text-amber-600"
-                          }
-                        >
-                          Risk: {movie.risk}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-5 grid grid-cols-3 gap-2">
-                      <a
-                        href={`/movies/${movie.id}`}
-                        className="rounded-xl border border-slate-200 px-2 py-3 text-center text-xs font-black text-slate-700"
-                      >
-                        Intelligence
-                      </a>
-
-                      <button
-                        type="button"
-                        onClick={() => toggleWatchlist(movie.title)}
-                        className="rounded-xl bg-[#0f2742] px-2 py-3 text-xs font-black text-white"
-                      >
-                        {watchlist.includes(movie.title) ? "Watching" : "Watchlist"}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => investDemo(movie)}
-                        className="rounded-xl bg-[#00ABE4] px-2 py-3 text-xs font-black text-[#0f2742]"
-                      >
-                        Invest demo
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-
-            <section
-              id="portfolio"
-              className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
-            >
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#087ba8]">
-                Portfolio overview · demo
-              </p>
-              <h2 className="mt-2 text-2xl font-black">
-                {portfolio.investmentCount > 0
-                  ? `${portfolio.investmentCount} simulated investment${portfolio.investmentCount === 1 ? "" : "s"} recorded.`
-                  : "Your demo portfolio is ready when you are."}
-              </h2>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-                Portfolio value: {formatDemoValue(portfolio.value)}. This data is stored only in this browser for the FilmTrade project demo. No money is processed and no real ownership is created.
-              </p>
-              <a
-                href="/movies"
-                className="mt-5 inline-flex rounded-xl bg-[#00ABE4] px-4 py-3 text-sm font-black text-[#0f2742]"
-              >
-                Explore movie intelligence
-              </a>
-            </section>
-          </section>
-
-          <aside className="space-y-6">
-            <section className="rounded-3xl border border-[#d6e6f5] bg-[#e9f1fa] p-6 shadow-sm">
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#087ba8]">
-                AI Copilot · demo
-              </p>
-              <h2 className="mt-3 text-2xl font-black">Today’s guidance</h2>
-
-              <div className="mt-5 space-y-4 text-sm leading-6">
-                <div>
-                  <p className="font-black">Summary</p>
-                  <p className="mt-1 text-slate-600">
-                    Upcoming projects currently lead the demo catalogue by FilmPulse score.
-                  </p>
-                </div>
-
-                <div>
-                  <p className="font-black">Reasoning</p>
-                  <p className="mt-1 text-slate-600">
-                    This is simulated intelligence based on catalogue metadata and transparent demo scoring.
-                  </p>
-                </div>
-
-                <div>
-                  <p className="font-black">Suggested action</p>
-                  <p className="mt-1 text-slate-600">
-                    Compare trust and risk labels before opening a movie intelligence page.
-                  </p>
-                </div>
-              </div>
-
-              {featuredMovie && (
-                <a
-                  href={`/movies/${featuredMovie.id}`}
-                  className="mt-6 block rounded-xl bg-[#0f2742] px-4 py-3 text-center text-sm font-black text-white"
-                >
-                  Review {featuredMovie.title}
-                </a>
-              )}
-            </section>
-
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[#087ba8]">
-                    Your watchlist
-                  </p>
-                  <h2 className="mt-2 text-xl font-black">Following</h2>
-                </div>
-
-                <a href="/watchlist" className="text-xs font-black text-[#00ABE4]">
-                  View all
-                </a>
-              </div>
-
-              <div className="mt-5 space-y-3">
-                {watchlistMovies.length > 0 ? (
-                  watchlistMovies.map((movie) => (
-                    <div
+            {showSearchResults && hasSearchText && (
+              <div className="absolute left-0 top-[52px] z-50 w-full overflow-hidden rounded-2xl border border-[#C4D8E5] bg-white p-2 shadow-[0_18px_40px_rgba(20,40,80,0.18)]">
+                {searchResults.length > 0 ? (
+                  searchResults.slice(0, 5).map((movie) => (
+                    <button
                       key={movie.id}
-                      className="flex items-center justify-between gap-3 rounded-2xl bg-[#f8fafc] p-3"
+                      type="button"
+                      onClick={() => openMovie(movie)}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-[#E8ECEF]"
                     >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-black">{movie.title}</p>
-                        <p className="mt-1 text-xs font-bold text-slate-500">
-                          FilmPulse demo {movie.filmPulse}
+                      <div className="h-10 w-8 overflow-hidden rounded-md bg-[#1C2B48]">
+                        {movie.posterUrl ? (
+                          <img
+                            src={movie.posterUrl}
+                            alt={movie.title}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : null}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-black text-[#1C2B48]">
+                          {movie.title}
+                        </p>
+
+                        <p className="mt-0.5 text-xs text-slate-500">
+                          {movie.language} · {movie.status}
                         </p>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => toggleWatchlist(movie.title)}
-                        className="text-xs font-black text-[#087ba8]"
-                      >
-                        Remove
-                      </button>
-                    </div>
+                      <span className="text-xs font-black text-[#10B981]">
+                        {movie.pulse}
+                      </span>
+                    </button>
                   ))
                 ) : (
-                  <p className="rounded-2xl bg-[#f8fafc] p-4 text-sm text-slate-500">
-                    Add a title from today’s opportunities.
-                  </p>
-                )}
-              </div>
-            </section>
+                  <div className="px-4 py-4">
+                    <p className="text-sm font-black text-[#1C2B48]">
+                      Movie record unavailable
+                    </p>
 
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#087ba8]">
-                Recent activity
-              </p>
-
-              <div className="mt-5 space-y-4 text-sm">
-                {activity.map((item) => (
-                  <div key={item.id}>
-                    <p className="font-semibold">{item.message}</p>
-                    <p className="mt-1 text-xs font-bold text-slate-400">
-                      {item.createdAt}
+                    <p className="mt-1 text-xs leading-5 text-slate-500">
+                      “{searchQuery}” is not available in the current FilmTrade
+                      movie database. This title has not yet been indexed in the
+                      verified catalogue. Please check again after future
+                      catalogue updates.
                     </p>
                   </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <a href="/movies" className="text-sm font-black text-[#2563EB] md:hidden">
+            Browse movies
+          </a>
+
+          <div className="ml-auto flex items-center gap-4">
+            <a href="/activity" className="relative text-xl">
+              ♧
+              <span className="absolute -right-2 -top-2 grid h-4 w-4 place-items-center rounded-full bg-[#8EB1D1] text-[9px] font-black text-[#1C2B48]">
+                8
+              </span>
+            </a>
+
+            <a href="/profile" className="flex items-center gap-2">
+              <div className="grid h-9 w-9 place-items-center rounded-full bg-[linear-gradient(145deg,#8EB1D1,#1C2B48)] text-sm font-black text-white">
+                {profileInitial}
+              </div>
+
+              <div className="hidden sm:block">
+                <p className="font-serif text-base font-black">{userName}</p>
+                <p className="text-[11px] text-slate-500">{userRole}</p>
+              </div>
+            </a>
+          </div>
+        </header>
+
+        <div className="mt-4 grid h-[calc(100%-74px)] gap-4 xl:grid-cols-[minmax(0,1fr)_350px]">
+          <div className="min-w-0 overflow-hidden">
+            <section className="relative col-span-1 overflow-hidden rounded-[28px] border border-[#d9e8f3] bg-[linear-gradient(105deg,#f8fbff_0%,#e8f3ff_50%,#a7cdf0_100%)] px-8 py-7 shadow-[0_12px_30px_rgba(27,67,110,0.08)] lg:col-span-2">
+  <div className="absolute inset-y-0 right-0 w-[48%] bg-[radial-gradient(circle_at_70%_45%,rgba(255,255,255,0.9),transparent_22%),linear-gradient(135deg,rgba(135,187,229,0.22),rgba(51,125,192,0.38))]" />
+<div className="relative z-10 flex min-h-[180px] items-center justify-between gap-6">
+  
+    <div className="max-w-[58%]">
+      <p className="font-serif text-[27px] leading-tight text-[#183a62] sm:text-[32px]">
+        Good Morning 👋
+      </p>
+
+      <h1 className="mt-1 font-serif text-[42px] font-bold leading-none text-[#102d50] sm:text-[54px]">
+        {userName}
+      </h1>
+
+      <p className="mt-4 text-sm font-semibold text-[#3d6388] sm:text-[15px]">
+        Discover. Analyze. Invest. Grow with FilmTrade.
+      </p>
+    </div>
+
+    <div className="relative flex h-[128px] w-[180px] shrink-0 items-center justify-center sm:h-[145px] sm:w-[210px]">
+      <div className="absolute h-24 w-24 rounded-full bg-white/60 blur-2xl" />
+
+      <div className="film-clapper relative z-10 text-[82px] leading-none sm:text-[98px]">
+        🎬
+      </div>
+    </div>
+  </div>
+</section>
+
+            <section className="mt-4 grid grid-cols-5 gap-3">
+              <StatCard title="Total Portfolio" value="₹24.8 Cr" detail="12.4% this month" dark />
+              <StatCard title="FilmPulse Avg." value="78" detail="6.4% from yesterday" dark />
+              <StatCard title="Active Investments" value="14" detail="2 new this week" icon="▣" />
+              <StatCard title="Total Returns" value="₹3.2 Cr" detail="18.7% overall" />
+              <StatCard title="Trust Score" value="92" detail="Verified Investor" icon="♢" />
+            </section>
+
+            <section className="mt-5">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="font-serif text-2xl font-black">🔥 Trending Now</h2>
+
+                <a href="/movies" className="text-sm font-black text-[#2563EB]">
+                  View All
+                </a>
+              </div>
+
+              <div className="flex gap-3 overflow-hidden">
+                {carouselMovies.slice(0, 5).map((movie, index) => (
+                  <button
+                    key={movie.id}
+                    type="button"
+                    onClick={() => openMovie(movie, index)}
+                    className="group w-[calc(20%-10px)] min-w-[130px] overflow-hidden rounded-[18px] bg-white text-left shadow-[0_8px_22px_rgba(20,40,80,0.10)] transition hover:-translate-y-1"
+                  >
+                    <div className="relative h-[118px] overflow-hidden bg-[#1C2B48]">
+                      {movie.posterUrl ? (
+  <img
+    src={movie.posterUrl}
+    alt={movie.title}
+    className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
+  />
+) : (
+  <div className="relative flex h-full items-end overflow-hidden bg-[linear-gradient(145deg,#0B1F3A,#2563EB_58%,#8EB1D1)] p-3">
+    <div className="absolute -right-5 -top-5 h-24 w-24 rounded-full border-[14px] border-white/15" />
+    <div className="absolute -bottom-8 -left-7 h-24 w-24 rounded-full bg-cyan-200/20 blur-xl" />
+    <div className="absolute right-3 top-3 text-2xl opacity-80">🎬</div>
+
+    <div className="relative">
+      <p className="text-[9px] font-black tracking-[0.18em] text-cyan-100/80">
+        FILMTRADE
+      </p>
+      <p className="mt-1 text-xl font-black leading-none text-white">
+        {movie.title}
+      </p>
+    </div>
+  </div>
+)}
+
+                      <span className="absolute right-2 top-2 rounded-full bg-[#10B981] px-2 py-1 text-[10px] font-black text-white">
+                        ↗
+                      </span>
+                    </div>
+
+                    <div className="p-3">
+                      <p className="truncate text-sm font-black">{movie.title}</p>
+
+                      <div className="mt-1 flex items-center justify-between">
+                        <p className="text-[10px] font-bold text-slate-500">
+                          FilmPulse <span className="text-base text-[#1C2B48]">{movie.pulse}</span>
+                        </p>
+
+                        <span className="text-[#10B981]">⌁</span>
+                      </div>
+                    </div>
+                  </button>
                 ))}
               </div>
             </section>
 
-            <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6">
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">
-                Trust & protection
-              </p>
-              <p className="mt-3 text-lg font-black text-emerald-950">
-                Transparent demo experience
-              </p>
-              <p className="mt-2 text-sm leading-6 text-emerald-800">
-                FilmTrade demonstrates decision support only. It does not verify identity, hold funds, process payments, or create real investments.
-              </p>
+            <section className="mt-4 rounded-[22px] bg-[linear-gradient(110deg,#E8ECEF,#C4D8E5)] p-4 shadow-[0_8px_25px_rgba(20,40,80,0.06)]">
+              <p className="text-sm font-black text-[#1C2B48]">✦ AI Copilot Insights</p>
+
+              <div className="mt-3 grid grid-cols-4 gap-3">
+                {[
+                  "Dragon is gaining strong momentum in youth audience.",
+                  "Action & Fantasy demand increased by 32%.",
+                  "3 watchlist projects are trending right now.",
+                  "Ramayana has highest FilmPulse.",
+                ].map((insight, index) => (
+                  <article key={insight} className="rounded-[15px] bg-white/80 p-3">
+                    <p className="text-xs font-semibold leading-5">{insight}</p>
+
+                    <span className="mt-2 inline-grid h-7 w-7 place-items-center rounded-full bg-[#C4D8E5] text-xs text-[#1C2B48]">
+                      {["↗", "◫", "♡", "✦"][index]}
+                    </span>
+                  </article>
+                ))}
+              </div>
+            </section>
+          </div>
+
+          <aside className="space-y-4 overflow-hidden">
+            <section className="rounded-[24px] bg-[linear-gradient(145deg,#E8ECEF,#C4D8E5)] p-5 shadow-[0_10px_30px_rgba(20,40,80,0.08)]">
+              <div className="flex items-center justify-between">
+                <h2 className="font-serif text-xl font-black">✦ AI Copilot</h2>
+
+                <span className="rounded-full bg-[#1C2B48] px-3 py-1 text-[10px] font-black text-white">
+                  NEW
+                </span>
+              </div>
+
+              <div className="mt-4 rounded-[18px] bg-white/55 p-4">
+                <p className="font-serif text-lg font-black">
+                  Here’s your smart summary for today.
+                </p>
+
+                <ul className="mt-4 space-y-2 text-xs font-medium">
+                  {[
+                    "2 projects gained high momentum",
+                    "1 milestone approved",
+                    "FilmPulse increased for 3 projects",
+                    `Recommended: Review ${featuredMovie.title}`,
+                  ].map((item) => (
+                    <li key={item} className="flex gap-2">
+                      <span className="text-[#2563EB]">●</span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+
+                <a
+                  href="/activity"
+                  className="mt-5 inline-flex items-center gap-3 rounded-xl bg-[#1C2B48] px-4 py-2.5 text-xs font-black text-white"
+                >
+                  View Full Insights <span>→</span>
+                </a>
+              </div>
+            </section>
+
+            <section className="rounded-[24px] bg-white p-5 shadow-[0_10px_30px_rgba(20,40,80,0.08)]">
+              <div className="flex items-center justify-between">
+                <h2 className="font-serif text-xl font-black">Your Watchlist</h2>
+
+                <a href="/watchlist" className="text-xs font-black text-[#2563EB]">
+                  View All
+                </a>
+              </div>
+
+              <div className="mt-3 divide-y divide-slate-100">
+                {watchlistMovies.map((movie) => (
+                  <button
+                    key={movie.id}
+                    type="button"
+                    onClick={() => openMovie(movie)}
+                    className="flex w-full items-center gap-3 py-2.5 text-left"
+                  >
+                    <div className="h-10 w-8 overflow-hidden rounded-md bg-[#1C2B48]">
+                      {movie.posterUrl ? (
+                        <img src={movie.posterUrl} alt={movie.title} className="h-full w-full object-cover" />
+                      ) : null}
+                    </div>
+
+                    <p className="min-w-0 flex-1 truncate text-xs font-black">{movie.title}</p>
+                    <p className="text-[10px] font-black text-[#10B981]">FilmPulse {movie.pulse}</p>
+                    <span className="text-[#2563EB]">▯</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            <section className="rounded-[24px] bg-white p-5 shadow-[0_10px_30px_rgba(20,40,80,0.08)]">
+              <div className="flex items-center justify-between">
+                <h2 className="font-serif text-xl font-black">Recent Notifications</h2>
+
+                <a href="/activity" className="text-xs font-black text-[#2563EB]">
+                  View All
+                </a>
+              </div>
+
+              <div className="mt-3 space-y-3">
+                {[
+                  [`FilmPulse increased for ${featuredMovie.title}`, "2h ago"],
+                  ["Milestone approved for Coolie", "4h ago"],
+                  ["New project added: Lokesh 67", "6h ago"],
+                ].map(([message, time], index) => (
+                  <div key={message} className="flex gap-3">
+                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#E8ECEF] text-xs text-[#2563EB]">
+                      {["⌂", "✉", "▯"][index]}
+                    </span>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold">{message}</p>
+                      <p className="mt-1 text-[10px] text-slate-400">{time}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </section>
           </aside>
-        </div>
+                </div>
       </div>
+
+      <style jsx global>{`
+        @keyframes filmClap {
+          0%,
+          100% {
+            transform: rotate(0deg) translateY(0);
+          }
+
+          20% {
+            transform: rotate(-8deg) translateY(-5px);
+          }
+
+          40% {
+            transform: rotate(5deg) translateY(1px);
+          }
+
+          60% {
+            transform: rotate(-3deg) translateY(-2px);
+          }
+        }
+
+        .film-clapper {
+          display: inline-block;
+          transform-origin: center bottom;
+          animation: filmClap 2.8s ease-in-out infinite;
+          filter: drop-shadow(0 14px 12px rgba(34, 74, 115, 0.22));
+        }
+      `}</style>
     </main>
   );
 }
