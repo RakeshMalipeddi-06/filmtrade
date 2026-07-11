@@ -31,7 +31,7 @@ export default function LoginPage() {
   const [role, setRole] = useState<Role>("Investor");
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
+const [error, setError] = useState("");
 
   function continueToWorkspace(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -87,8 +87,9 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="h-screen overflow-hidden bg-[#C4D8E5] p-3 text-[#1C2B48] sm:p-5">
-      <section className="mx-auto grid h-full max-w-[1600px] overflow-hidden rounded-[30px] bg-[#E8ECEF] shadow-[0_25px_70px_rgba(28,43,72,0.22)] lg:grid-cols-[1.15fr_0.85fr]">
+  <main className="h-screen overflow-hidden bg-[#C4D8E5] p-3 text-[#1C2B48] sm:p-5">
+
+    <section className="mx-auto grid h-full max-w-[1600px] overflow-hidden rounded-[30px] bg-[#E8ECEF] shadow-[0_25px_70px_rgba(28,43,72,0.22)] lg:grid-cols-[1.15fr_0.85fr]">
         <aside className="relative hidden overflow-hidden bg-[radial-gradient(circle_at_78%_20%,rgba(167,199,231,0.45),transparent_24%),radial-gradient(circle_at_18%_78%,rgba(142,177,209,0.4),transparent_26%),linear-gradient(145deg,#1C2B48_0%,#29496d_45%,#8EB1D1_140%)] p-9 text-white lg:flex lg:flex-col">
           <CinematicBackground />
 
@@ -107,11 +108,10 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="relative z-10 mt-[clamp(34px,7vh,76px)]">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-[#E8ECEF] backdrop-blur-md">
-              <Sparkles size={13} />
-              AI Powered Cinema Intelligence
-            </div>
+          <p className="mb-6 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.25em] text-[#D6E9F7]">
+  <Sparkles size={14} className="text-[#FFD166]" />
+  AI Powered Cinema Intelligence
+</p>
 
             <h1 className="mt-6 max-w-xl font-serif text-[clamp(38px,4vw,64px)] font-black leading-[1.04] tracking-tight">
               Where India&apos;s stories
@@ -123,12 +123,11 @@ export default function LoginPage() {
             </h1>
 
             <div className="mt-6 space-y-1.5 text-sm leading-6 text-[#E8ECEF]/90">
-              <p>Discover emerging films.</p>
-              <p>Analyze market momentum.</p>
-              <p>Invest with confidence.</p>
-              <p className="font-black text-[#A7C7E7]">Powered by AI.</p>
+              <p>🎬 Discover tomorrow's blockbusters</p>
+              <p>📈 Track real-time audience momentum</p>
+              <p>💰 Make smarter investment decisions</p>
+              <p className="font-black text-[#A7C7E7]">🤖 Powered by AI. Driven by data.</p>
             </div>
-          </div>
 
           <div className="relative z-10 mt-auto grid grid-cols-3 gap-3">
             <MetricCard icon={<Film size={16} />} value="120+" label="Verified Projects" />
@@ -137,9 +136,10 @@ export default function LoginPage() {
           </div>
         </aside>
 
-        <section className="relative flex h-full items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_100%_0%,#dceaf5_0%,transparent_30%),linear-gradient(145deg,#ffffff,#E8ECEF)] p-5 sm:p-8 lg:p-10">
-          <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full border-[35px] border-[#A7C7E7]/20" />
-          <div className="absolute -bottom-28 -left-20 h-72 w-72 rounded-full border-[35px] border-[#8EB1D1]/15" />
+<section className="relative flex h-full items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_100%_0%,#dceaf5_0%,transparent_30%),linear-gradient(145deg,#ffffff,#E8ECEF)] p-5 sm:p-8 lg:p-10">
+<div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-[#A7C7E7]/30 blur-3xl" />
+
+<div className="absolute bottom-0 left-0 h-60 w-60 rounded-full bg-[#D8ECF8]/40 blur-3xl" />
 
           <div className="relative z-10 w-full max-w-[440px]">
             <div className="mb-6">
@@ -258,10 +258,12 @@ export default function LoginPage() {
               </button>
             </p>
           </div>
-        </section>
-      </section>
-    </main>
-  );
+        </section>   {/* closes login section */}
+
+</section>   {/* closes outer grid section */}
+
+</main>
+);
 }
 
 function Field({
@@ -327,7 +329,7 @@ function CinematicBackground() {
         <div className="h-2 w-24 rounded-full bg-white/[0.08]" />
       </div>
 
-      <div className="absolute left-[45%] top-[10%] h-[540px] w-20 rotate-[28deg] bg-gradient-to-b from-transparent via-[#E8ECEF]/15 to-transparent blur-xl" />
+      <div className="absolute left-1/2 top-0 h-full w-72 -translate-x-1/2 bg-gradient-to-b from-[#BFE5FF]/60 via-[#D9F2FF]/30 to-transparent blur-3xl animate-pulse" />
       <div className="absolute left-[65%] top-[15%] h-[480px] w-14 rotate-[38deg] bg-gradient-to-b from-transparent via-[#A7C7E7]/20 to-transparent blur-xl" />
 
       {[...Array(25)].map((_, index) => (
