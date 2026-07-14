@@ -179,6 +179,10 @@ export default function DashboardPage() {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [activeMovie, setActiveMovie] = useState(0);
   const [userName, setUserName] = useState("User");
+  const [portfolio, setPortfolio] = useState({
+  investmentCount: 0,
+  value: 0,
+});
   const [userRole, setUserRole] = useState("Investor");
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearchResults, setShowSearchResults] = useState(false);
@@ -190,6 +194,18 @@ export default function DashboardPage() {
       if (!savedUser) return;
 
       const user = JSON.parse(savedUser) as LoggedInUser;
+      const email =
+  (user.email || "guest")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "-");
+
+const portfolioKey = `filmtrade-portfolio-${email}`;
+
+const savedPortfolio = localStorage.getItem(portfolioKey);
+
+if (savedPortfolio) {
+  setPortfolio(JSON.parse(savedPortfolio));
+}
 
       if (user.name?.trim()) {
         setUserName(user.name.trim());
@@ -404,12 +420,13 @@ export default function DashboardPage() {
 </section>
 
             <section className="mt-4 grid grid-cols-5 gap-3">
-              <StatCard title="Total Portfolio" value="₹24.8 Cr" detail="12.4% this month" dark />
+              <StatCard title="Total Portfolio" value={`₹${portfolio.value.toLocaleString("en-IN")}`} detail="12.4% this month" dark />
               <StatCard title="FilmPulse Avg." value="78" detail="6.4% from yesterday" dark />
-              <StatCard title="Active Investments" value="14" detail="2 new this week" icon="▣" />
-              <StatCard title="Total Returns" value="₹3.2 Cr" detail="18.7% overall" />
+              <StatCard title="Active Investments" value={portfolio.investmentCount.toString()} detail="2 new this week" icon="▣" />
+              <StatCard title="Total Returns" value={`₹${Math.round(portfolio.value * 0.18).toLocaleString("en-IN")}`} detail="18.7% overall" />
               <StatCard title="Trust Score" value="92" detail="Verified Investor" icon="♢" />
             </section>
+            
 
             <section className="mt-5">
               <div className="mb-3 flex items-center justify-between">
@@ -421,12 +438,15 @@ export default function DashboardPage() {
               </div>
 
               <div className="flex gap-3 overflow-hidden">
-                {carouselMovies.slice(0, 5).map((movie, index) => (
-                  <button
+                {carouselMovies.slice(0, 5).map((movie, index) => {
+  const estimatedROI = Math.max(8, Math.round(movie.pulse / 3));
+
+  return (
+    <button
                     key={movie.id}
                     type="button"
                     onClick={() => openMovie(movie, index)}
-                    className="group w-[calc(20%-10px)] min-w-[130px] overflow-hidden rounded-[18px] bg-white text-left shadow-[0_8px_22px_rgba(20,40,80,0.10)] transition hover:-translate-y-1"
+                    className="group relative w-[calc(20%-10px)] min-w-[130px] overflow-hidden rounded-[20px] bg-white text-left border border-transparent shadow-[0_10px_30px_rgba(20,40,80,0.12)] transition-all duration-300 hover:-translate-y-2 hover:border-sky-300 hover:shadow-[0_25px_60px_rgba(37,99,235,0.28)]"
                   >
                     <div className="relative h-[118px] overflow-hidden bg-[#1C2B48]">
                       {movie.posterUrl ? (
@@ -452,24 +472,67 @@ export default function DashboardPage() {
   </div>
 )}
 
-                      <span className="absolute right-2 top-2 rounded-full bg-[#10B981] px-2 py-1 text-[10px] font-black text-white">
-                        ↗
-                      </span>
+                      <div className="absolute left-2 top-2 rounded-full bg-black/70 px-2 py-1 text-[9px] font-black text-white">
+  AI PICK
+</div>
+
+<div className="absolute right-2 top-2 rounded-full bg-green-500 px-2 py-1 text-[9px] font-black text-white">
+  ↗ HOT
+</div>
+                        
                     </div>
 
                     <div className="p-3">
-                      <p className="truncate text-sm font-black">{movie.title}</p>
 
-                      <div className="mt-1 flex items-center justify-between">
-                        <p className="text-[10px] font-bold text-slate-500">
-                          FilmPulse <span className="text-base text-[#1C2B48]">{movie.pulse}</span>
-                        </p>
+  <div className="flex items-center justify-between">
 
-                        <span className="text-[#10B981]">⌁</span>
-                      </div>
-                    </div>
+    <p className="truncate text-sm font-black">
+      {movie.title}
+    </p>
+
+    <span className="rounded-full bg-green-100 px-2 py-0.5 text-[9px] font-black text-green-700">
+      Strong Buy
+    </span>
+
+  </div>
+
+  <div className="mt-2 flex items-center justify-between">
+
+    <span className="text-xs font-bold text-slate-500">
+      FilmPulse
+    </span>
+
+    <span className="text-lg font-black text-[#1C2B48]">
+      {movie.pulse}
+    </span>
+
+  </div>
+
+  <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
+
+    <div
+      className="h-full rounded-full bg-gradient-to-r from-sky-500 to-green-500"
+      style={{ width: `${movie.pulse}%` }}
+    />
+
+  </div>
+
+  <div className="mt-3 flex items-center justify-between text-[11px]">
+
+    <span className="rounded-full bg-blue-50 px-2 py-1 font-bold text-blue-700">
+  ROI {estimatedROI}%
+</span>
+
+    <span className="font-bold text-green-600">
+      ↗ Trending
+    </span>
+
+  </div>
+
+</div>
                   </button>
-                ))}
+  );
+})}
               </div>
             </section>
 

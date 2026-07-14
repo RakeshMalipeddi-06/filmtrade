@@ -5,6 +5,10 @@ import { useParams } from "next/navigation";
 import { verifiedUpcomingMovies } from "@/data/verifiedUpcomingMovies";
 import { movieEvidence } from "@/data/movieEvidence";
 import { movieStatusOverrides } from "@/data/movieStatus";
+import InvestmentModal from "@/components/InvestmentModal";
+
+
+
 
 type LiveMovie = {
   imdbId: string;
@@ -77,11 +81,30 @@ type DemoPortfolio = {
   value: number;
 };
 
-const STORAGE_KEYS = {
-  watchlist: "filmtrade-demo-watchlist",
-  activity: "filmtrade-demo-activity",
-  portfolio: "filmtrade-demo-portfolio",
-};
+const USER_KEY = "filmtrade-demo-user";
+
+function getStorageKeys() {
+  if (typeof window === "undefined") {
+    return {
+      watchlist: "filmtrade-demo-watchlist",
+      activity: "filmtrade-demo-activity",
+      portfolio: "filmtrade-demo-portfolio",
+    };
+  }
+
+  const user = JSON.parse(
+    window.localStorage.getItem(USER_KEY) || "{}"
+  );
+
+  const email =
+    (user.email || "guest").toLowerCase().replace(/[^a-z0-9]/g, "-");
+
+  return {
+    watchlist: `filmtrade-watchlist-${email}`,
+    activity: `filmtrade-activity-${email}`,
+    portfolio: `filmtrade-portfolio-${email}`,
+  };
+}
 
 function scoreFor(id: string, minimum: number, range: number) {
   const total = id
@@ -145,8 +168,19 @@ function evidenceIcon(type: string) {
 }
 
 export default function MovieIntelligencePage() {
+
+    const [showInvestmentModal, setShowInvestmentModal] = useState(false);
+
+    const [investmentAmount, setInvestmentAmount] = useState(10000);
+
+    const [processingInvestment, setProcessingInvestment] = useState(false);
+
+    const [investmentCompleted, setInvestmentCompleted] = useState(false);
+
+    // existing states continue...
   const params = useParams<{ id: string }>();
   const movieId = decodeURIComponent(params.id);
+  const STORAGE_KEYS = getStorageKeys();
 
   const [data, setData] = useState<MovieApiResponse | null>(null);
   const [mediaData, setMediaData] = useState<MovieMediaResponse | null>(null);
@@ -154,9 +188,15 @@ export default function MovieIntelligencePage() {
   const [mediaLoading, setMediaLoading] = useState(true);
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [portfolio, setPortfolio] = useState<DemoPortfolio>({
+    
     investmentCount: 0,
     value: 0,
   });
+  
+
+
+
+
 
   useEffect(() => {
     setWatchlist(getStoredValue<string[]>(STORAGE_KEYS.watchlist, []));
@@ -383,22 +423,37 @@ export default function MovieIntelligencePage() {
   }
 
   function investDemo() {
-    if (!movie) return;
+  setInvestmentCompleted(false);
+  setInvestmentAmount(10000);
+  setShowInvestmentModal(true);
+}
+async function confirmInvestment() {
+  setProcessingInvestment(true);
 
-    const amount = 10000;
+  await new Promise((resolve) => setTimeout(resolve, 2200));
 
-    const next = {
-      investmentCount: portfolio.investmentCount + 1,
-      value: portfolio.value + amount,
-    };
+  const nextPortfolio = {
+    investmentCount: portfolio.investmentCount + 1,
+    value: portfolio.value + investmentAmount,
+  };
 
-    setPortfolio(next);
-    window.localStorage.setItem(STORAGE_KEYS.portfolio, JSON.stringify(next));
+  setPortfolio(nextPortfolio);
 
-    addActivity(
-      `Added a ${formatCurrency(amount)} simulated investment for ${movie.title}.`,
-    );
-  }
+  window.localStorage.setItem(
+    STORAGE_KEYS.portfolio,
+    JSON.stringify(nextPortfolio)
+  );
+
+  addActivity(
+    `Simulated investment of ₹${investmentAmount.toLocaleString(
+      "en-IN"
+    )} placed in ${movie?.title}.`
+  );
+
+  setProcessingInvestment(false);
+  setInvestmentCompleted(true);
+  setShowInvestmentModal(false);
+}
 
   if (loading) {
     return (
@@ -484,15 +539,90 @@ export default function MovieIntelligencePage() {
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-[#cbe8f7] bg-[#e9f1fa] px-5 py-4 text-center">
-                  <p className="text-xs font-black uppercase tracking-[0.13em] text-[#087ba8]">
-                    FilmPulse
-                  </p>
-                  <p className="mt-1 text-4xl font-black">{scores.filmPulse}</p>
-                  <p className="mt-1 text-xs font-bold text-slate-500">
-                    Demo intelligence
-                  </p>
-                </div>
+                <div className="w-full max-w-sm rounded-3xl border border-sky-200 bg-gradient-to-br from-white via-sky-50 to-cyan-50 p-6 shadow-xl">
+
+  <div className="flex items-center justify-between">
+    <div>
+      <p className="text-xs font-bold uppercase tracking-[0.25em] text-sky-500">
+        FilmPulse™ AI
+      </p>
+
+      <h3 className="mt-2 text-5xl font-black text-slate-900">
+        {scores.filmPulse}
+        <span className="text-xl text-slate-400"> /100</span>
+      </h3>
+    </div>
+
+    <div className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">
+      LIVE
+    </div>
+  </div>
+
+  <div className="mt-5 h-3 overflow-hidden rounded-full bg-slate-200">
+    <div
+      className="h-full rounded-full bg-gradient-to-r from-sky-500 to-cyan-500 transition-all duration-700"
+      style={{ width: `${scores.filmPulse}%` }}
+    />
+  </div>
+
+  <div className="mt-6 rounded-2xl bg-white p-4">
+
+    <div className="flex items-center justify-between">
+      <span className="text-sm font-semibold text-slate-500">
+        Recommendation
+      </span>
+
+      <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">
+        STRONG BUY
+      </span>
+    </div>
+
+    <div className="mt-4 flex items-center justify-between">
+      <span className="text-sm text-slate-500">
+        Confidence
+      </span>
+
+      <strong className="text-sky-600">
+        94%
+      </strong>
+    </div>
+
+  </div>
+
+  <div className="mt-6 space-y-3">
+
+    {[
+      "Trailer Performance",
+      "Social Buzz",
+      "Audience Interest",
+      "Director Track Record",
+    ].map((item) => (
+      <div
+        key={item}
+        className="flex items-center gap-3 rounded-xl bg-white px-3 py-2"
+      >
+        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-xs font-bold text-white">
+          ✓
+        </div>
+
+        <span className="text-sm font-medium text-slate-700">
+          {item}
+        </span>
+      </div>
+    ))}
+
+  </div>
+
+  <div className="mt-6 rounded-xl border border-sky-100 bg-sky-50 p-3">
+
+    <p className="text-xs leading-5 text-slate-600">
+      AI analysis indicates strong audience momentum and healthy market
+      sentiment. Educational simulation only, not financial advice.
+    </p>
+
+  </div>
+
+</div>
               </div>
 
               <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -830,57 +960,198 @@ export default function MovieIntelligencePage() {
           </div>
 
           <aside className="space-y-5">
-            <section className="rounded-3xl border border-[#cbe8f7] bg-[#e9f1fa] p-6 shadow-sm">
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#087ba8]">
-                Trust & verification
-              </p>
-
-              <h2 className="mt-3 text-2xl font-black">Source-led project view</h2>
-
-              <div className="mt-5 space-y-4 text-sm">
-                <div className="rounded-2xl bg-white p-4">
-                  <p className="font-black">Record type</p>
-                  <p className="mt-1 text-slate-600">{movie.sourceType}</p>
-                </div>
-
-                <div className="rounded-2xl bg-white p-4">
-                  <p className="font-black">Trust score</p>
-                  <p className="mt-1 text-slate-600">
-                    {scores.trust} / 100 · simulated demo score
-                  </p>
-                </div>
-
-                <div className="rounded-2xl bg-white p-4">
-                  <p className="font-black">Evidence records</p>
-                  <p className="mt-1 text-slate-600">
-                    {evidence.length} official or verified public source
-                    {evidence.length === 1 ? "" : "s"} linked.
-                  </p>
-                </div>
-
-                <div className="rounded-2xl bg-white p-4">
-                  <p className="font-black">Financial boundary</p>
-                  <p className="mt-1 text-slate-600">
-                    No KYC, escrow, payments, ownership, or real investments are processed.
-                  </p>
-                </div>
-              </div>
-            </section>
-
             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#087ba8]">
-                Your demo portfolio
-              </p>
 
-              <p className="mt-3 text-3xl font-black">
-                {formatCurrency(portfolio.value)}
-              </p>
+  <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-500">
+    Revenue Waterfall
+  </p>
 
-              <p className="mt-2 text-sm text-slate-500">
-                {portfolio.investmentCount} simulated investment
-                {portfolio.investmentCount === 1 ? "" : "s"} in this browser.
-              </p>
-            </section>
+  <h2 className="mt-2 text-2xl font-black">
+    How Investors Earn
+  </h2>
+
+  <p className="mt-2 text-sm text-slate-500">
+    Educational visualization of how revenue flows through the film ecosystem.
+  </p>
+
+  <div className="mt-8 space-y-4">
+
+    {[
+      {
+        title: "Investor",
+        color: "bg-sky-500",
+      },
+      {
+        title: "Producer",
+        color: "bg-indigo-500",
+      },
+      {
+        title: "Production",
+        color: "bg-violet-500",
+      },
+      {
+        title: "Theatrical Release",
+        color: "bg-orange-500",
+      },
+      {
+        title: "OTT & Satellite",
+        color: "bg-emerald-500",
+      },
+      {
+        title: "Revenue Sharing",
+        color: "bg-green-600",
+      },
+    ].map((step, index) => (
+
+      <div key={step.title}>
+
+        <div className="flex items-center gap-4">
+
+          <div
+            className={`h-10 w-10 rounded-full ${step.color} flex items-center justify-center font-black text-white`}
+          >
+            {index + 1}
+          </div>
+
+          <div className="flex-1 rounded-xl bg-slate-100 px-4 py-3">
+
+            <p className="font-bold">
+              {step.title}
+            </p>
+
+          </div>
+
+        </div>
+
+        {index !== 5 && (
+
+          <div className="ml-5 h-8 w-0.5 bg-slate-300" />
+
+        )}
+
+      </div>
+
+    ))}
+
+  </div>
+
+  <div className="mt-8 rounded-2xl bg-sky-50 p-4">
+
+    <p className="text-sm font-bold text-sky-700">
+
+      Example Simulation
+
+    </p>
+
+    <div className="mt-3 flex justify-between">
+
+      <span>
+        Investment
+      </span>
+
+      <strong>
+        ₹50,000
+      </strong>
+
+    </div>
+
+    <div className="mt-2 flex justify-between">
+
+      <span>
+        Estimated Return
+      </span>
+
+      <strong className="text-green-600">
+        ₹62,000
+      </strong>
+
+    </div>
+
+    <p className="mt-3 text-xs text-slate-500">
+
+      Educational demonstration only.
+      No real revenue distribution occurs.
+
+    </p>
+
+  </div>
+
+</section>
+
+            <section className="rounded-3xl border border-sky-200 bg-gradient-to-br from-white to-sky-50 p-6 shadow-lg">
+
+  <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-500">
+    Investment Opportunity
+  </p>
+
+  <h2 className="mt-2 text-2xl font-black">
+    FilmPulse Recommendation
+  </h2>
+
+  <div className="mt-6">
+
+    <div className="flex justify-between">
+
+      <span className="text-slate-500">
+        FilmPulse Score
+      </span>
+
+      <strong className="text-sky-600">
+        {scores.filmPulse}/100
+      </strong>
+
+    </div>
+
+    <div className="mt-2 h-3 overflow-hidden rounded-full bg-slate-200">
+
+      <div
+        className="h-full rounded-full bg-sky-500"
+        style={{
+          width: `${scores.filmPulse}%`,
+        }}
+      />
+
+    </div>
+
+  </div>
+
+  <div className="mt-6 space-y-4">
+
+    <div className="flex justify-between">
+
+      <span>Expected ROI</span>
+
+      <strong className="text-green-600">
+        24%
+      </strong>
+
+    </div>
+
+    <div className="flex justify-between">
+
+      <span>Investment Risk</span>
+
+      <strong className="text-amber-600">
+        Moderate
+      </strong>
+
+    </div>
+
+    <div className="flex justify-between">
+
+      <span>Portfolio Value</span>
+
+      <strong>
+        {formatCurrency(portfolio.value)}
+      </strong>
+
+    </div>
+
+  </div>
+
+  
+
+</section>
           </aside>
         </section>
       </div>
@@ -905,14 +1176,125 @@ export default function MovieIntelligencePage() {
           </button>
 
           <button
-            type="button"
-            onClick={investDemo}
-            className="flex-1 rounded-xl bg-[#00ABE4] px-4 py-3 text-sm font-black text-[#0f2742] sm:flex-none"
-          >
-            Invest demo
-          </button>
+  type="button"
+  onClick={() => setShowInvestmentModal(!showInvestmentModal)}
+  className="flex-1 rounded-xl bg-[#00ABE4] px-4 py-3 text-sm font-black text-[#0f2742] sm:flex-none"
+>
+  Invest demo
+</button>
         </div>
-      </div>
-    </main>
-  );
+</div>
+{showInvestmentModal && (
+
+<section className="mt-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
+
+<p className="text-xs font-black uppercase tracking-[0.18em] text-sky-500">
+Investment Amount
+</p>
+
+<h2 className="mt-2 text-2xl font-black">
+Choose your demo investment
+</h2>
+
+<div className="mt-6 grid grid-cols-2 gap-3">
+
+{[10000,25000,50000,100000].map((value)=>(
+
+<button
+key={value}
+type="button"
+onClick={()=>setInvestmentAmount(value)}
+className={`rounded-2xl border p-5 transition
+
+${
+investmentAmount===value
+?"border-sky-500 bg-sky-500 text-white shadow-lg"
+:"border-slate-300 bg-white hover:border-sky-300"
+}`}
+
+>
+
+<p className="text-lg font-black">
+
+₹{value.toLocaleString("en-IN")}
+
+</p>
+
+</button>
+
+))}
+
+</div>
+
+<div className="mt-8 rounded-2xl bg-slate-50 p-5">
+
+<div className="flex justify-between">
+
+<span>Investment</span>
+
+<strong>
+
+₹{investmentAmount.toLocaleString("en-IN")}
+
+</strong>
+
+</div>
+
+<div className="mt-4 flex justify-between">
+
+<span>Expected Return</span>
+
+<strong className="text-green-600">
+
+₹{Math.round(investmentAmount*1.24).toLocaleString("en-IN")}
+
+</strong>
+
+</div>
+
+<div className="mt-4 flex justify-between">
+
+<span>Holding Period</span>
+
+<strong>
+
+18 Months
+
+</strong>
+
+</div>
+
+<div className="mt-4 flex justify-between">
+
+<span>Risk</span>
+
+<strong className="text-amber-600">
+
+Moderate
+
+</strong>
+
+</div>
+
+</div>
+
+<button
+
+onClick={confirmInvestment}
+
+className="mt-8 w-full rounded-2xl bg-sky-500 py-4 text-lg font-bold text-white transition hover:bg-sky-600"
+
+>
+
+Continue →
+
+</button>
+
+</section>
+
+)}
+
+
+</main>
+);
 }
