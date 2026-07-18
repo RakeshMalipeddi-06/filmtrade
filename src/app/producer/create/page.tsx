@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 type SubmissionStatus =
@@ -141,7 +141,7 @@ function cardGradient(artDirection: string) {
   return "bg-gradient-to-br from-[#142b50] via-[#275f93] to-[#9ddcff]";
 }
 
-export default function CreateProducerProjectPage() {
+function ProducerCreateContent() {
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
 
@@ -637,5 +637,18 @@ export default function CreateProducerProjectPage() {
         </form>
       </div>
     </main>
+  );
+}
+export default function ProducerCreatePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          Loading...
+        </div>
+      }
+    >
+      <ProducerCreateContent />
+    </Suspense>
   );
 }
