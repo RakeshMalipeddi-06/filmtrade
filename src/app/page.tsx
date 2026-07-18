@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   BarChart3,
-  CheckCircle2,
   CircleDollarSign,
   Clapperboard,
   Eye,
@@ -123,7 +122,7 @@ const [error, setError] = useState("");
             </h1>
 
             <div className="mt-6 space-y-1.5 text-sm leading-6 text-[#E8ECEF]/90">
-              <p>🎬 Discover tomorrow's blockbusters</p>
+              <p>🎬 Discover tomorrow&apos; s blockbusters</p>
               <p>📈 Track real-time audience momentum</p>
               <p>💰 Make smarter investment decisions</p>
               <p className="font-black text-[#A7C7E7]">🤖 Powered by AI. Driven by data.</p>

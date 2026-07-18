@@ -52,13 +52,6 @@ type WatchlistMovie = {
 
 const WATCHLIST_KEY = "filmtrade-demo-watchlist";
 
-function scoreFor(id: string, minimum: number, range: number) {
-  const total = id
-    .split("")
-    .reduce((sum, character) => sum + character.charCodeAt(0), 0);
-
-  return minimum + (total % range);
-}
 
 function formatViews(value: number) {
   if (value === 0) return "No official views yet";

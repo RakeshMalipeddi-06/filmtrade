@@ -5,7 +5,6 @@ import { useParams } from "next/navigation";
 import { verifiedUpcomingMovies } from "@/data/verifiedUpcomingMovies";
 import { movieEvidence } from "@/data/movieEvidence";
 import { movieStatusOverrides } from "@/data/movieStatus";
-import InvestmentModal from "@/components/InvestmentModal";
 
 
 
@@ -173,9 +172,6 @@ export default function MovieIntelligencePage() {
 
     const [investmentAmount, setInvestmentAmount] = useState(10000);
 
-    const [processingInvestment, setProcessingInvestment] = useState(false);
-
-    const [investmentCompleted, setInvestmentCompleted] = useState(false);
 
     // existing states continue...
   const params = useParams<{ id: string }>();
@@ -422,13 +418,8 @@ export default function MovieIntelligencePage() {
     );
   }
 
-  function investDemo() {
-  setInvestmentCompleted(false);
-  setInvestmentAmount(10000);
-  setShowInvestmentModal(true);
-}
+  
 async function confirmInvestment() {
-  setProcessingInvestment(true);
 
   await new Promise((resolve) => setTimeout(resolve, 2200));
 
@@ -450,8 +441,7 @@ async function confirmInvestment() {
     )} placed in ${movie?.title}.`
   );
 
-  setProcessingInvestment(false);
-  setInvestmentCompleted(true);
+
   setShowInvestmentModal(false);
 }
 
